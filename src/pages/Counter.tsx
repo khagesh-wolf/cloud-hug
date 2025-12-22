@@ -60,8 +60,9 @@ export default function Counter() {
     return null;
   }
 
+  // Only show pending and accepted orders
   const pendingOrders = orders.filter(o => o.status === 'pending');
-  const activeOrders = orders.filter(o => ['accepted', 'preparing', 'ready'].includes(o.status));
+  const activeOrders = orders.filter(o => o.status === 'accepted');
   const unpaidBills = bills.filter(b => b.status === 'unpaid');
   const categories = [...new Set(menuItems.map(m => m.category))];
 
@@ -300,7 +301,9 @@ export default function Counter() {
             {/* Active Orders Tab */}
             <TabsContent value="active" className="flex-1 p-4 overflow-y-auto m-0">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeOrders.map(order => (
+                {activeOrders.length === 0 ? (
+                  <div className="col-span-full text-center text-muted-foreground py-8">No accepted orders</div>
+                ) : activeOrders.map(order => (
                   <div key={order.id} className="bg-card rounded-xl border border-border p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -310,11 +313,7 @@ export default function Counter() {
                       <span className="text-xs text-muted-foreground">{formatNepalTime(order.createdAt)}</span>
                     </div>
                     <div className="text-sm text-muted-foreground mb-3">{order.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
-                    <div className="flex gap-2">
-                      {order.status === 'accepted' && <Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'preparing')}>Start Preparing</Button>}
-                      {order.status === 'preparing' && <Button size="sm" className="flex-1 bg-success" onClick={() => updateOrderStatus(order.id, 'ready')}>Mark Ready</Button>}
-                      {order.status === 'ready' && <Button size="sm" className="flex-1" variant="outline" onClick={() => updateOrderStatus(order.id, 'served')}>Mark Served</Button>}
-                    </div>
+                    <div className="text-sm font-semibold text-primary">รू {order.total}</div>
                   </div>
                 ))}
               </div>

@@ -61,6 +61,7 @@ export interface Customer {
   name?: string;
   totalOrders: number;
   totalSpent: number;
+  points: number;
   lastVisit: string;
 }
 

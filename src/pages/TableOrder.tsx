@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { OrderItem } from '@/types';
@@ -20,7 +20,7 @@ type Category = 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry';
 export default function TableOrder() {
   const { tableNumber } = useParams();
   const navigate = useNavigate();
-  const { menuItems, settings, addOrder, orders } = useStore();
+  const { menuItems, settings, addOrder, orders, getCustomerPoints, customers } = useStore();
   
   const [phone, setPhone] = useState('');
   const [isPhoneEntered, setIsPhoneEntered] = useState(false);
@@ -48,13 +48,16 @@ export default function TableOrder() {
     item => item.category === activeCategory && item.available
   );
 
-  // Get customer's orders for this table
+  // Get customer's orders for this table - only show pending and accepted
   const myOrders = orders.filter(
-    o => o.tableNumber === table && o.customerPhone === phone && o.status !== 'cancelled'
+    o => o.tableNumber === table && o.customerPhone === phone && ['pending', 'accepted'].includes(o.status)
   );
   const totalDue = myOrders.reduce((sum, o) => 
     sum + o.items.reduce((s, i) => s + i.price * i.qty, 0), 0
   );
+
+  // Get customer points
+  const customerPoints = phone ? getCustomerPoints(phone) : 0;
 
   const addToCart = (item: typeof menuItems[0]) => {
     const existing = cart.find(c => c.menuItemId === item.id);
@@ -227,7 +230,7 @@ export default function TableOrder() {
           <div className="bg-[#fff8e1] p-4 rounded-xl border border-[#ffe0b2] mb-5">
             <span className="font-bold text-lg block mb-1">{phone}</span>
             <div className="text-[#f39c12] font-semibold flex items-center gap-1">
-              ⭐ 0 Points
+              ⭐ {customerPoints} Points
             </div>
             <div className="font-semibold text-[#7f8c8d] text-sm mt-2">
               Table {table}

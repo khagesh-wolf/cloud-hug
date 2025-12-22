@@ -8,7 +8,7 @@ import { Check, X, Clock, ChefHat, Bell, CheckCircle, LogOut } from 'lucide-reac
 import { toast } from 'sonner';
 import { formatNepalTime, formatNepalDateTime } from '@/lib/nepalTime';
 
-const statusFlow: OrderStatus[] = ['pending', 'accepted', 'preparing', 'ready', 'served'];
+const statusFlow: OrderStatus[] = ['pending', 'accepted'];
 
 export default function Kitchen() {
   const navigate = useNavigate();
@@ -20,8 +20,9 @@ export default function Kitchen() {
     return null;
   }
 
+  // Only show pending and accepted orders
   const activeOrders = orders.filter(o => 
-    ['pending', 'accepted', 'preparing', 'ready'].includes(o.status)
+    ['pending', 'accepted'].includes(o.status)
   );
 
   const filteredOrders = filter === 'all' 
@@ -29,8 +30,7 @@ export default function Kitchen() {
     : activeOrders.filter(o => o.status === filter);
 
   const pendingCount = orders.filter(o => o.status === 'pending').length;
-  const preparingCount = orders.filter(o => o.status === 'preparing').length;
-  const readyCount = orders.filter(o => o.status === 'ready').length;
+  const acceptedCount = orders.filter(o => o.status === 'accepted').length;
 
   const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
     updateOrderStatus(order.id, newStatus);
@@ -75,8 +75,7 @@ export default function Kitchen() {
         <div className="flex gap-2 mb-6 flex-wrap">
           <FilterTab label="All Orders" count={activeOrders.length} active={filter === 'all'} onClick={() => setFilter('all')} />
           <FilterTab label="Pending" count={pendingCount} active={filter === 'pending'} onClick={() => setFilter('pending')} variant="warning" />
-          <FilterTab label="Preparing" count={preparingCount} active={filter === 'preparing'} onClick={() => setFilter('preparing')} variant="accent" />
-          <FilterTab label="Ready" count={readyCount} active={filter === 'ready'} onClick={() => setFilter('ready')} variant="success" />
+          <FilterTab label="Accepted" count={acceptedCount} active={filter === 'accepted'} onClick={() => setFilter('accepted')} variant="success" />
         </div>
 
         {/* Orders Grid */}

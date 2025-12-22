@@ -94,6 +94,7 @@ interface StoreState extends AuthState {
 
   // Customers
   customers: Customer[];
+  getCustomerPoints: (phone: string) => number;
   addOrUpdateCustomer: (phone: string, amount: number) => void;
 
   // Staff
@@ -269,8 +270,15 @@ export const useStore = create<StoreState>()(
       // Customers
       customers: [],
 
+      getCustomerPoints: (phone) => {
+        const customer = get().customers.find(c => c.phone === phone);
+        return customer?.points || 0;
+      },
+
       addOrUpdateCustomer: (phone, amount) => set((state) => {
         const existing = state.customers.find(c => c.phone === phone);
+        // 10 rs spent = 1 point
+        const newPoints = Math.floor(amount / 10);
         if (existing) {
           return {
             customers: state.customers.map(c =>
@@ -279,6 +287,7 @@ export const useStore = create<StoreState>()(
                     ...c,
                     totalOrders: c.totalOrders + (amount > 0 ? 1 : 0),
                     totalSpent: c.totalSpent + amount,
+                    points: c.points + newPoints,
                     lastVisit: getNepalTimestamp(),
                   }
                 : c
@@ -290,6 +299,7 @@ export const useStore = create<StoreState>()(
             phone,
             totalOrders: amount > 0 ? 1 : 0,
             totalSpent: amount,
+            points: newPoints,
             lastVisit: getNepalTimestamp(),
           }]
         };
@@ -333,6 +343,43 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'chiyadani-store',
+      partialize: (state) => ({
+        ...state,
+        // Persist auth state
+        isAuthenticated: state.isAuthenticated,
+        currentUser: state.currentUser,
+      }),
     }
   )
 );
+
+// Realtime sync using BroadcastChannel API
+const channel = typeof window !== 'undefined' ? new BroadcastChannel('chiyadani-sync') : null;
+let isBroadcasting = false;
+
+if (channel) {
+  // Listen for updates from other tabs
+  channel.onmessage = (event) => {
+    if (event.data.type === 'STATE_UPDATE') {
+      isBroadcasting = true;
+      useStore.setState(event.data.state);
+      isBroadcasting = false;
+    }
+  };
+
+  // Broadcast state changes to other tabs
+  useStore.subscribe((state) => {
+    if (!isBroadcasting) {
+      channel.postMessage({
+        type: 'STATE_UPDATE',
+        state: {
+          orders: state.orders,
+          bills: state.bills,
+          transactions: state.transactions,
+          customers: state.customers,
+          menuItems: state.menuItems,
+        }
+      });
+    }
+  });
+}
