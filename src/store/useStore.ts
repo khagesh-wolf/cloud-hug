@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MenuItem, Order, Bill, Transaction, Customer, Staff, Settings, OrderStatus, OrderItem, Expense } from '@/types';
+import { MenuItem, Order, Bill, Transaction, Customer, Staff, Settings, OrderStatus, OrderItem, Expense, WaiterCall } from '@/types';
 import { getNepalTimestamp, isToday } from '@/lib/nepalTime';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
@@ -114,6 +114,13 @@ interface StoreState extends AuthState {
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
   deleteExpense: (id: string) => void;
   getExpensesByDateRange: (start: string, end: string) => Expense[];
+
+  // Waiter Calls
+  waiterCalls: WaiterCall[];
+  callWaiter: (tableNumber: number, customerPhone: string) => void;
+  acknowledgeWaiterCall: (id: string) => void;
+  dismissWaiterCall: (id: string) => void;
+  getPendingWaiterCalls: () => WaiterCall[];
 
   // Stats
   getTodayStats: () => { revenue: number; orders: number; activeOrders: number; activeTables: number };
@@ -378,6 +385,38 @@ export const useStore = create<StoreState>()(
         });
       },
 
+      // Waiter Calls
+      waiterCalls: [],
+
+      callWaiter: (tableNumber, customerPhone) => {
+        // Check if there's already a pending call from this table
+        const existingCall = get().waiterCalls.find(
+          c => c.tableNumber === tableNumber && c.status === 'pending'
+        );
+        if (existingCall) return;
+
+        const newCall: WaiterCall = {
+          id: generateId(),
+          tableNumber,
+          customerPhone,
+          status: 'pending',
+          createdAt: getNepalTimestamp(),
+        };
+        set((state) => ({ waiterCalls: [...state.waiterCalls, newCall] }));
+      },
+
+      acknowledgeWaiterCall: (id) => set((state) => ({
+        waiterCalls: state.waiterCalls.map(c =>
+          c.id === id ? { ...c, status: 'acknowledged' as const, acknowledgedAt: getNepalTimestamp() } : c
+        )
+      })),
+
+      dismissWaiterCall: (id) => set((state) => ({
+        waiterCalls: state.waiterCalls.filter(c => c.id !== id)
+      })),
+
+      getPendingWaiterCalls: () => get().waiterCalls.filter(c => c.status === 'pending'),
+
       // Stats
       getTodayStats: () => {
         const todayTransactions = get().transactions.filter(t => isToday(t.paidAt));
@@ -430,6 +469,7 @@ if (channel) {
           customers: state.customers,
           menuItems: state.menuItems,
           expenses: state.expenses,
+          waiterCalls: state.waiterCalls,
         }
       });
     }
