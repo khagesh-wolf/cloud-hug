@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { formatNepalTime, formatNepalDateTime } from '@/lib/nepalTime';
 import FonepayQR from '@/components/FonepayQR';
 import { useOrderNotification } from '@/hooks/useOrderNotification';
+import { useWaiterCallNotification } from '@/hooks/useWaiterCallNotification';
 
 interface BillGroup {
   key: string;
@@ -39,8 +40,9 @@ export default function Counter() {
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
   
-  // Audio notification hook
+  // Audio notification hooks
   useOrderNotification();
+  useWaiterCallNotification();
   
   const { 
     orders, 

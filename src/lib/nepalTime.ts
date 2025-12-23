@@ -60,6 +60,35 @@ export function getNepalTimestamp(): string {
   return new Date().toISOString();
 }
 
+// Get today's date in Nepal timezone as YYYY-MM-DD string
+export function getNepalTodayString(): string {
+  const nepal = getNepalTime();
+  const year = nepal.getFullYear();
+  const month = String(nepal.getMonth() + 1).padStart(2, '0');
+  const day = String(nepal.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Get a date N days ago in Nepal timezone as YYYY-MM-DD string
+export function getNepalDateDaysAgo(days: number): string {
+  const nepal = getNepalTime();
+  nepal.setDate(nepal.getDate() - days);
+  const year = nepal.getFullYear();
+  const month = String(nepal.getMonth() + 1).padStart(2, '0');
+  const day = String(nepal.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Get transaction date in Nepal timezone for comparison
+export function getTransactionDateInNepal(isoString: string): string {
+  const d = new Date(isoString);
+  const nepal = getNepalTime(d);
+  const year = nepal.getFullYear();
+  const month = String(nepal.getMonth() + 1).padStart(2, '0');
+  const day = String(nepal.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function isToday(date: Date | string): boolean {
   const d = typeof date === 'string' ? new Date(date) : date;
   const today = getNepalTime();

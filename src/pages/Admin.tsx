@@ -14,7 +14,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { formatNepalDateTime, formatNepalDateReadable } from '@/lib/nepalTime';
+import { formatNepalDateTime, formatNepalDateReadable, getNepalTodayString, getNepalDateDaysAgo, getTransactionDateInNepal } from '@/lib/nepalTime';
 import { QRCodeSVG } from 'qrcode.react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -56,21 +56,13 @@ export default function Admin() {
   const [staffModal, setStaffModal] = useState<{ open: boolean; editing: Staff | null }>({ open: false, editing: null });
   const [newStaff, setNewStaff] = useState({ username: '', password: '', name: '', role: 'counter' as 'admin' | 'counter' });
 
-  // Dashboard date range states
-  const [dashboardDateFrom, setDashboardDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().split('T')[0];
-  });
-  const [dashboardDateTo, setDashboardDateTo] = useState(() => new Date().toISOString().split('T')[0]);
+  // Dashboard date range states - use Nepal timezone
+  const [dashboardDateFrom, setDashboardDateFrom] = useState(() => getNepalDateDaysAgo(30));
+  const [dashboardDateTo, setDashboardDateTo] = useState(() => getNepalTodayString());
 
   // Analytics states (same as dashboard for consistency)
-  const [analyticsDateFrom, setAnalyticsDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().split('T')[0];
-  });
-  const [analyticsDateTo, setAnalyticsDateTo] = useState(() => new Date().toISOString().split('T')[0]);
+  const [analyticsDateFrom, setAnalyticsDateFrom] = useState(() => getNepalDateDaysAgo(30));
+  const [analyticsDateTo, setAnalyticsDateTo] = useState(() => getNepalTodayString());
 
   if (!isAuthenticated || currentUser?.role !== 'admin') {
     navigate('/auth');
@@ -79,17 +71,17 @@ export default function Admin() {
 
   const stats = getTodayStats();
 
-  // Calculate analytics data
+  // Calculate analytics data with Nepal timezone
   const getAnalyticsData = () => {
     const filtered = transactions.filter(t => {
-      const date = t.paidAt.split('T')[0];
+      const date = getTransactionDateInNepal(t.paidAt);
       return date >= analyticsDateFrom && date <= analyticsDateTo;
     });
 
-    // Revenue by day
+    // Revenue by day (in Nepal timezone)
     const revenueByDay: Record<string, number> = {};
     filtered.forEach(t => {
-      const day = t.paidAt.split('T')[0];
+      const day = getTransactionDateInNepal(t.paidAt);
       revenueByDay[day] = (revenueByDay[day] || 0) + t.total;
     });
     const dailyRevenue = Object.entries(revenueByDay)
@@ -151,18 +143,45 @@ export default function Admin() {
 
   const analytics = getAnalyticsData();
 
-  // Dashboard data with date range filter
+  // Dashboard data with date range filter (Nepal timezone)
   const getDashboardData = () => {
     const filtered = transactions.filter(t => {
-      const date = t.paidAt.split('T')[0];
+      const date = getTransactionDateInNepal(t.paidAt);
       return date >= dashboardDateFrom && date <= dashboardDateTo;
     });
+
+    // Revenue by day for charts
+    const revenueByDay: Record<string, number> = {};
+    filtered.forEach(t => {
+      const day = getTransactionDateInNepal(t.paidAt);
+      revenueByDay[day] = (revenueByDay[day] || 0) + t.total;
+    });
+    const dailyRevenue = Object.entries(revenueByDay)
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Top items for charts
+    const itemCounts: Record<string, { name: string; qty: number; revenue: number }> = {};
+    filtered.forEach(t => {
+      t.items.forEach(item => {
+        if (!itemCounts[item.name]) {
+          itemCounts[item.name] = { name: item.name, qty: 0, revenue: 0 };
+        }
+        itemCounts[item.name].qty += item.qty;
+        itemCounts[item.name].revenue += item.qty * item.price;
+      });
+    });
+    const topItems = Object.values(itemCounts)
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
 
     return {
       totalRevenue: filtered.reduce((sum, t) => sum + t.total, 0),
       totalOrders: filtered.length,
       uniqueCustomers: new Set(filtered.flatMap(t => t.customerPhones)).size,
-      avgOrderValue: filtered.length ? Math.round(filtered.reduce((sum, t) => sum + t.total, 0) / filtered.length) : 0
+      avgOrderValue: filtered.length ? Math.round(filtered.reduce((sum, t) => sum + t.total, 0) / filtered.length) : 0,
+      dailyRevenue,
+      topItems
     };
   };
 
@@ -407,8 +426,8 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
+      {/* Sidebar - Sticky */}
+      <aside className="w-64 bg-card border-r border-border flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
@@ -465,7 +484,7 @@ export default function Admin() {
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  const today = new Date().toISOString().split('T')[0];
+                  const today = getNepalTodayString();
                   setDashboardDateFrom(today);
                   setDashboardDateTo(today);
                 }}
@@ -476,10 +495,8 @@ export default function Admin() {
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - 7);
-                  setDashboardDateFrom(d.toISOString().split('T')[0]);
-                  setDashboardDateTo(new Date().toISOString().split('T')[0]);
+                  setDashboardDateFrom(getNepalDateDaysAgo(7));
+                  setDashboardDateTo(getNepalTodayString());
                 }}
               >
                 Last 7 Days
@@ -488,10 +505,8 @@ export default function Admin() {
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - 30);
-                  setDashboardDateFrom(d.toISOString().split('T')[0]);
-                  setDashboardDateTo(new Date().toISOString().split('T')[0]);
+                  setDashboardDateFrom(getNepalDateDaysAgo(30));
+                  setDashboardDateTo(getNepalTodayString());
                 }}
               >
                 Last 30 Days
@@ -505,12 +520,12 @@ export default function Admin() {
               <StatCard icon={Users} label="Unique Customers" value={dashboardData.uniqueCustomers.toString()} color="warning" />
             </div>
 
-            {/* Quick Charts */}
+            {/* Quick Charts - Now use dashboard date range */}
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-card p-6 rounded-2xl border border-border">
                 <h3 className="font-bold mb-4">Revenue Trend</h3>
                 <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={analytics.dailyRevenue.slice(-7)}>
+                  <LineChart data={dashboardData.dailyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
@@ -522,7 +537,7 @@ export default function Admin() {
               <div className="bg-card p-6 rounded-2xl border border-border">
                 <h3 className="font-bold mb-4">Top Selling Items</h3>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={analytics.topItems.slice(0, 5)} layout="vertical">
+                  <BarChart data={dashboardData.topItems} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis type="number" tick={{ fontSize: 10 }} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
