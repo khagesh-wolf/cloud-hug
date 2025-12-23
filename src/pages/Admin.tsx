@@ -426,17 +426,20 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar - Sticky */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col sticky top-0 h-screen">
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">C</span>
+      {/* Sidebar - Premium Dark Theme */}
+      <aside className="w-72 sidebar flex flex-col sticky top-0 h-screen">
+        <div className="sidebar-header">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center shadow-warm">
+              <span className="text-primary-foreground font-bold text-xl">C</span>
             </div>
-            <span className="font-bold text-lg">{settings.restaurantName}</span>
+            <div>
+              <span className="font-serif font-bold text-lg text-sidebar-foreground">{settings.restaurantName}</span>
+              <p className="text-xs text-sidebar-foreground/60">Admin Dashboard</p>
+            </div>
           </div>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="sidebar-content flex-1 overflow-y-auto">
           {navItems.map(item => (
             <button
               key={item.id}
@@ -447,17 +450,24 @@ export default function Admin() {
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t border-border">
-          <Button variant="outline" className="w-full" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" /> Logout
+        <div className="p-4 border-t border-sidebar-border">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-xl" 
+            onClick={handleLogout}
+          >
+            <LogOut className="w-4 h-4 mr-3" /> Logout
           </Button>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto flex flex-col">
-        <div className="mb-6">
-          <p className="text-sm text-muted-foreground">{formatNepalDateTime(new Date())}</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-foreground">{navItems.find(n => n.id === tab)?.label}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{formatNepalDateTime(new Date())}</p>
+          </div>
         </div>
         <div className="flex-1">
 
@@ -1244,19 +1254,19 @@ function StatCard({ icon: Icon, label, value, color }: {
   color: 'primary' | 'success' | 'accent' | 'warning';
 }) {
   const colorClasses = {
-    primary: 'text-primary bg-primary/10',
-    success: 'text-success bg-success/10',
-    accent: 'text-secondary bg-secondary/10',
-    warning: 'text-warning bg-warning/10',
+    primary: 'text-primary bg-primary/15',
+    success: 'text-success bg-success/15',
+    accent: 'text-secondary bg-secondary/15',
+    warning: 'text-warning bg-warning/15',
   };
 
   return (
-    <div className="bg-card p-6 rounded-2xl border border-border">
-      <div className={`w-12 h-12 rounded-xl ${colorClasses[color]} flex items-center justify-center mb-4`}>
+    <div className="stat-card group">
+      <div className={`w-12 h-12 rounded-xl ${colorClasses[color]} flex items-center justify-center mb-4 transition-transform group-hover:scale-110`}>
         <Icon className="w-6 h-6" />
       </div>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="font-serif text-2xl font-bold">{value}</p>
+      <p className="text-sm text-muted-foreground mt-1">{label}</p>
     </div>
   );
 }
