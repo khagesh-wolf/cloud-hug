@@ -24,7 +24,7 @@ type Category = 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry' | 'Favorites';
 export default function TableOrder() {
   const { tableNumber } = useParams();
   const navigate = useNavigate();
-  const { menuItems, settings, addOrder, getCustomerPoints } = useStore();
+  const { menuItems, settings, addOrder, getCustomerPoints, updateOrderStatus } = useStore();
   
   const [phone, setPhone] = useState('');
   const [isPhoneEntered, setIsPhoneEntered] = useState(false);
@@ -608,11 +608,31 @@ export default function TableOrder() {
               <p className="text-center text-[#999] py-5">No active orders.</p>
             ) : (
               myOrders.map(order => (
-                <div key={order.id} className="mb-4">
+                <div key={order.id} className="mb-4 bg-[#f9f9f9] rounded-lg p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-[#888]">Order #{order.id.slice(-6)}</span>
+                    {order.status === 'pending' && (
+                      <button
+                        onClick={() => {
+                          // Re-check the latest status before canceling to avoid race condition
+                          const currentOrder = storeOrders.find(o => o.id === order.id);
+                          if (currentOrder && currentOrder.status === 'pending') {
+                            updateOrderStatus(order.id, 'cancelled');
+                            toast.success('Order cancelled');
+                          } else {
+                            toast.error('Order already accepted, cannot cancel');
+                          }
+                        }}
+                        className="text-xs text-red-500 font-medium px-2 py-1 border border-red-200 rounded-full hover:bg-red-50"
+                      >
+                        Cancel Order
+                      </button>
+                    )}
+                  </div>
                   {order.items.map((item, idx) => {
                     const status = getStatusText(order.status);
                     return (
-                      <div key={idx} className="flex justify-between items-center py-3 border-b border-[#eee]">
+                      <div key={idx} className="flex justify-between items-center py-2 border-b border-[#eee] last:border-b-0">
                         <div>
                           <div className="font-semibold">{item.qty}x {item.name}</div>
                           <div className="text-sm text-[#888]">रू{item.price * item.qty}</div>

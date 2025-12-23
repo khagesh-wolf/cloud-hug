@@ -147,12 +147,24 @@ export default function Counter() {
   const historyData = getHistoryData();
 
   const handleAccept = (order: Order) => {
+    // Re-check order status to prevent race condition with customer cancellation
+    const currentOrder = orders.find(o => o.id === order.id);
+    if (!currentOrder || currentOrder.status !== 'pending') {
+      toast.error('Order was cancelled by customer');
+      return;
+    }
     updateOrderStatus(order.id, 'accepted');
     toast.success('Order accepted');
     printKOT(order);
   };
 
   const handleReject = (orderId: string) => {
+    // Re-check order status to prevent race condition
+    const currentOrder = orders.find(o => o.id === orderId);
+    if (!currentOrder || currentOrder.status !== 'pending') {
+      toast.error('Order was already cancelled');
+      return;
+    }
     if (!confirm('Reject this order?')) return;
     updateOrderStatus(orderId, 'cancelled');
     toast.info('Order rejected');
