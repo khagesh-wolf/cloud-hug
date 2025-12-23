@@ -16,7 +16,8 @@ import {
   BarChart3,
   Wallet,
   Plus,
-  Trash2
+  Trash2,
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatNepalTime, formatNepalDateTime } from '@/lib/nepalTime';
@@ -49,11 +50,15 @@ export default function Counter() {
     transactions,
     customers,
     expenses,
+    waiterCalls,
     createBill, 
     payBill,
     updateOrderStatus,
     addExpense,
     deleteExpense,
+    acknowledgeWaiterCall,
+    dismissWaiterCall,
+    getPendingWaiterCalls,
     isAuthenticated,
     currentUser,
     logout,
@@ -347,7 +352,7 @@ export default function Counter() {
 
   return (
     <div className="flex h-screen bg-[#f0f2f5] overflow-hidden">
-      {/* Sidebar - Incoming Orders */}
+      {/* Sidebar - Incoming Orders & Waiter Calls */}
       <div className="w-[350px] bg-[#2c3e50] text-white flex flex-col border-r border-[#34495e]">
         <div className="p-5 bg-[#1a252f] border-b border-[#34495e]">
           <div className="text-lg font-bold flex justify-between items-center">
@@ -358,7 +363,54 @@ export default function Counter() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {pendingOrders.length === 0 ? (
+          {/* Waiter Calls Section */}
+          {getPendingWaiterCalls().length > 0 && (
+            <div className="space-y-3">
+              <div className="text-sm font-semibold text-[#f39c12] flex items-center gap-2">
+                <Bell className="w-4 h-4" /> Waiter Calls
+              </div>
+              {getPendingWaiterCalls().map(call => (
+                <div 
+                  key={call.id} 
+                  className="bg-[#fff8e1] text-[#333] rounded-lg p-3 border-l-4 border-[#f39c12] animate-pulse"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-lg">Table {call.tableNumber}</span>
+                    <span className="text-xs text-[#888]">{formatNepalTime(call.createdAt)}</span>
+                  </div>
+                  <div className="text-sm text-[#666] mb-2">
+                    Customer: {call.customerPhone}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-[#27ae60] hover:bg-[#27ae60]/90 text-white"
+                      onClick={() => {
+                        acknowledgeWaiterCall(call.id);
+                        toast.success(`Going to Table ${call.tableNumber}`);
+                      }}
+                    >
+                      <Check className="w-3 h-3 mr-1" /> On My Way
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="border-[#ccc]"
+                      onClick={() => {
+                        dismissWaiterCall(call.id);
+                        toast.info('Call dismissed');
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pending Orders */}
+          {pendingOrders.length === 0 && getPendingWaiterCalls().length === 0 ? (
             <div className="text-center text-[#7f8c8d] mt-12">No pending orders</div>
           ) : (
             pendingOrders.map(order => (

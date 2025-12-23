@@ -13,7 +13,8 @@ import {
   Check,
   Heart,
   Clock,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatNepalTime } from '@/lib/nepalTime';
@@ -25,7 +26,7 @@ type Category = 'Tea' | 'Snacks' | 'Cold Drink' | 'Pastry' | 'Favorites';
 export default function TableOrder() {
   const { tableNumber } = useParams();
   const navigate = useNavigate();
-  const { menuItems, settings, addOrder, getCustomerPoints, updateOrderStatus } = useStore();
+  const { menuItems, settings, addOrder, getCustomerPoints, updateOrderStatus, callWaiter, waiterCalls } = useStore();
   
   const [phone, setPhone] = useState('');
   const [isPhoneEntered, setIsPhoneEntered] = useState(false);
@@ -368,6 +369,23 @@ export default function TableOrder() {
             </div>
           </div>
           <div className="flex flex-col gap-2.5">
+            <button 
+              onClick={() => {
+                const hasPendingCall = waiterCalls.some(
+                  c => c.tableNumber === table && c.status === 'pending'
+                );
+                if (hasPendingCall) {
+                  toast.info('Waiter has already been called. Please wait.');
+                  return;
+                }
+                callWaiter(table, phone);
+                toast.success('Waiter has been called! They will be with you shortly.');
+                setDrawerOpen(false);
+              }}
+              className="w-full bg-[#fff8e1] border border-[#ffe0b2] px-3 py-2 rounded-full text-sm font-semibold text-[#f39c12] flex items-center gap-2 justify-start"
+            >
+              <Bell className="w-4 h-4" /> Call Waiter
+            </button>
             <button 
               onClick={() => { setBillModalOpen(true); setDrawerOpen(false); }}
               className="w-full bg-[#f6f6f6] border border-[#eee] px-3 py-2 rounded-full text-sm font-semibold text-[#333] flex items-center gap-2 justify-start"

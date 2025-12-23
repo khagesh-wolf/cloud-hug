@@ -97,3 +97,12 @@ export interface Expense {
   createdAt: string;
   createdBy: string;
 }
+
+export interface WaiterCall {
+  id: string;
+  tableNumber: number;
+  customerPhone: string;
+  status: 'pending' | 'acknowledged';
+  createdAt: string;
+  acknowledgedAt?: string;
+}
