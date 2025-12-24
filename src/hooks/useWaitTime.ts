@@ -1,18 +1,43 @@
 import { useMemo } from 'react';
 import { useStore } from '@/store/useStore';
 
-// Estimated prep time per category (in minutes)
-const PREP_TIMES: Record<string, number> = {
-  'Tea': 3,
-  'Snacks': 8,
-  'Cold Drink': 2,
-  'Pastry': 1,
-};
-
-const AVERAGE_PREP_TIME = 5; // Default fallback
+const AVERAGE_PREP_TIME = 5; // Default fallback in minutes
 
 export function useWaitTime() {
   const orders = useStore((state) => state.orders);
+  const categories = useStore((state) => state.categories);
+  const settings = useStore((state) => state.settings);
+  const menuItems = useStore((state) => state.menuItems);
+
+  // Get kitchen parallel capacity from settings (default: 3)
+  const kitchenHandles = settings.kitchenHandles || 3;
+
+  // Build a map of category name to prep time
+  const categoryPrepTimes = useMemo(() => {
+    const map: Record<string, number> = {};
+    categories.forEach(cat => {
+      map[cat.name] = cat.prepTime || AVERAGE_PREP_TIME;
+    });
+    return map;
+  }, [categories]);
+
+  // Get prep time for a menu item by looking up its category
+  const getPrepTimeForItem = (itemName: string, menuItemId?: string): number => {
+    // First try to find by menuItemId
+    if (menuItemId) {
+      const menuItem = menuItems.find(m => m.id === menuItemId);
+      if (menuItem && categoryPrepTimes[menuItem.category]) {
+        return categoryPrepTimes[menuItem.category];
+      }
+    }
+    
+    // Fallback: try to match item name to category
+    const category = Object.keys(categoryPrepTimes).find(cat => 
+      itemName.toLowerCase().includes(cat.toLowerCase())
+    );
+    
+    return category ? categoryPrepTimes[category] : AVERAGE_PREP_TIME;
+  };
 
   const estimateWaitTime = useMemo(() => {
     // Get orders that are pending or accepted (in queue)
@@ -25,34 +50,26 @@ export function useWaitTime() {
     
     queuedOrders.forEach(order => {
       order.items.forEach(item => {
-        // Try to find category from name or use average
-        const category = Object.keys(PREP_TIMES).find(cat => 
-          item.name.toLowerCase().includes(cat.toLowerCase())
-        );
-        const prepTime = category ? PREP_TIMES[category] : AVERAGE_PREP_TIME;
+        const prepTime = getPrepTimeForItem(item.name, item.menuItemId);
         totalQueueMinutes += prepTime * item.qty;
       });
     });
 
-    // Assume kitchen can handle ~3 orders in parallel
-    const parallelFactor = 3;
-    const estimatedMinutes = Math.ceil(totalQueueMinutes / parallelFactor);
+    // Divide by kitchen parallel capacity
+    const estimatedMinutes = Math.ceil(totalQueueMinutes / kitchenHandles);
 
     return estimatedMinutes;
-  }, [orders]);
+  }, [orders, categoryPrepTimes, kitchenHandles, menuItems]);
 
   const getWaitTimeForNewOrder = (cartItems: { name: string; qty: number }[]) => {
     let newOrderTime = 0;
     
     cartItems.forEach(item => {
-      const category = Object.keys(PREP_TIMES).find(cat => 
-        item.name.toLowerCase().includes(cat.toLowerCase())
-      );
-      const prepTime = category ? PREP_TIMES[category] : AVERAGE_PREP_TIME;
+      const prepTime = getPrepTimeForItem(item.name);
       newOrderTime += prepTime * item.qty;
     });
 
-    // Total wait = current queue + new order time
+    // Total wait = current queue + new order time (divided by 2 for partial parallelism)
     const totalWait = estimateWaitTime + Math.ceil(newOrderTime / 2);
     
     return totalWait;

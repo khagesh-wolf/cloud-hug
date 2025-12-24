@@ -2,6 +2,7 @@ export interface Category {
   id: string;
   name: string;
   sortOrder: number;
+  prepTime?: number; // Average prep time in minutes
 }
 
 export interface MenuItem {
@@ -94,6 +95,8 @@ export interface Settings {
   googleReviewUrl?: string;
   // Admin-less mode: counter gets full admin access
   counterAsAdmin?: boolean;
+  // Kitchen settings
+  kitchenHandles?: number; // Number of parallel orders kitchen can handle (default: 3)
   // Point system settings
   pointSystemEnabled?: boolean;
   pointsPerRupee?: number;       // How many points earned per rupee spent (e.g., 1 point per 10 rupees = 0.1)

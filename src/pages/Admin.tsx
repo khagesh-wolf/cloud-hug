@@ -58,7 +58,8 @@ export default function Admin() {
   // Category management
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string } | null>(null);
+  const [newCategoryPrepTime, setNewCategoryPrepTime] = useState('5');
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; prepTime?: number } | null>(null);
 
   // Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1552,6 +1553,25 @@ export default function Admin() {
                     Loyalty Point System
                   </h3>
                   
+                  {/* Kitchen Settings */}
+                  <div className="mb-6 pb-4 border-b border-border">
+                    <h3 className="font-medium mb-3">Kitchen Settings</h3>
+                    <div>
+                      <label className="text-sm font-medium">Kitchen Handles (Parallel Orders)</label>
+                      <Input 
+                        type="number" 
+                        min="1"
+                        max="10"
+                        value={settings.kitchenHandles || 3} 
+                        onChange={e => updateSettings({ kitchenHandles: parseInt(e.target.value) || 3 })} 
+                        placeholder="3"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Number of orders the kitchen can prepare simultaneously. Used for wait time estimation.
+                      </p>
+                    </div>
+                  </div>
+                  
                   {/* Enable/Disable Toggle */}
                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
                     <div>
@@ -1892,31 +1912,40 @@ export default function Admin() {
           <DialogHeader><DialogTitle>Manage Categories</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             {/* Add new category */}
-            <div className="flex gap-2">
-              <Input 
-                placeholder="New category name"
-                value={newCategoryName}
-                onChange={e => setNewCategoryName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && newCategoryName.trim()) {
-                    addCategory(newCategoryName.trim());
-                    setNewCategoryName('');
-                    toast.success('Category added');
-                  }
-                }}
-              />
-              <Button 
-                onClick={() => {
-                  if (newCategoryName.trim()) {
-                    addCategory(newCategoryName.trim());
-                    setNewCategoryName('');
-                    toast.success('Category added');
-                  }
-                }}
-                disabled={!newCategoryName.trim()}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="New category name"
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  className="flex-1"
+                />
+                <Input 
+                  type="number"
+                  placeholder="Prep time"
+                  value={newCategoryPrepTime}
+                  onChange={e => setNewCategoryPrepTime(e.target.value)}
+                  className="w-20"
+                  min="1"
+                  max="60"
+                />
+                <Button 
+                  onClick={() => {
+                    if (newCategoryName.trim()) {
+                      addCategory(newCategoryName.trim(), parseInt(newCategoryPrepTime) || 5);
+                      setNewCategoryName('');
+                      setNewCategoryPrepTime('5');
+                      toast.success('Category added');
+                    }
+                  }}
+                  disabled={!newCategoryName.trim()}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Prep time is in minutes (used for wait time estimation)
+              </p>
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -2020,7 +2049,7 @@ export default function Admin() {
                           onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
                           onKeyDown={e => {
                             if (e.key === 'Enter' && editingCategory.name.trim()) {
-                              updateCategory(cat.id, editingCategory.name.trim());
+                              updateCategory(cat.id, editingCategory.name.trim(), editingCategory.prepTime);
                               setEditingCategory(null);
                               toast.success('Category updated');
                             } else if (e.key === 'Escape') {
@@ -2029,10 +2058,20 @@ export default function Admin() {
                           }}
                           autoFocus
                           className="flex-1"
+                          placeholder="Category name"
+                        />
+                        <Input 
+                          type="number"
+                          value={editingCategory.prepTime || 5}
+                          onChange={e => setEditingCategory({ ...editingCategory, prepTime: parseInt(e.target.value) || 5 })}
+                          className="w-16"
+                          min="1"
+                          max="60"
+                          placeholder="min"
                         />
                         <Button size="sm" variant="ghost" onClick={() => {
                           if (editingCategory.name.trim()) {
-                            updateCategory(cat.id, editingCategory.name.trim());
+                            updateCategory(cat.id, editingCategory.name.trim(), editingCategory.prepTime);
                             setEditingCategory(null);
                             toast.success('Category updated');
                           }
@@ -2049,10 +2088,13 @@ export default function Admin() {
                         <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
                         
                         <span className="flex-1 font-medium">{cat.name}</span>
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {cat.prepTime || 5}m
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {menuItems.filter(m => m.category === cat.name).length} items
                         </span>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingCategory({ id: cat.id, name: cat.name })}>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingCategory({ id: cat.id, name: cat.name, prepTime: cat.prepTime || 5 })}>
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
