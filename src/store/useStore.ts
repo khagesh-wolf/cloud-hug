@@ -82,6 +82,7 @@ interface StoreState extends AuthState {
   addCategory: (name: string) => void;
   updateCategory: (id: string, name: string) => void;
   deleteCategory: (id: string) => void;
+  reorderCategories: (fromIndex: number, toIndex: number) => void;
 
   // Menu
   menuItems: MenuItem[];
@@ -203,6 +204,21 @@ export const useStore = create<StoreState>()((set, get) => ({
   deleteCategory: (id) => {
     set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
     syncToBackend(() => categoriesApi.delete(id));
+  },
+
+  reorderCategories: (fromIndex, toIndex) => {
+    const cats = [...get().categories].sort((a, b) => a.sortOrder - b.sortOrder);
+    const [moved] = cats.splice(fromIndex, 1);
+    cats.splice(toIndex, 0, moved);
+    
+    // Update sortOrder for all categories
+    const updated = cats.map((cat, i) => ({ ...cat, sortOrder: i + 1 }));
+    set({ categories: updated });
+    
+    // Sync all updated categories to backend
+    updated.forEach(cat => {
+      syncToBackend(() => categoriesApi.update(cat.id, cat));
+    });
   },
 
   // Menu - starts empty, loaded from backend

@@ -10,7 +10,7 @@ import {
   Plus, Edit, Trash2, LogOut, Settings, LayoutDashboard, 
   UtensilsCrossed, Users, QrCode, History, TrendingUp, ShoppingBag, DollarSign,
   Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight,
-  Check, X, Menu as MenuIcon, MonitorDot
+  Check, X, Menu as MenuIcon, MonitorDot, ChevronUp, ChevronDown, GripVertical
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -42,7 +42,7 @@ export default function Admin() {
   const { 
     menuItems, addMenuItem, updateMenuItem, deleteMenuItem, toggleItemAvailability,
     bulkToggleAvailability,
-    categories, addCategory, updateCategory, deleteCategory,
+    categories, addCategory, updateCategory, deleteCategory, reorderCategories,
     customers, transactions, staff, settings, updateSettings,
     addStaff, updateStaff, deleteStaff, expenses,
     isAuthenticated, currentUser, logout, getTodayStats
@@ -1918,13 +1918,18 @@ export default function Admin() {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+
+            <p className="text-xs text-muted-foreground">
+              <GripVertical className="w-3 h-3 inline mr-1" />
+              Use arrows to reorder categories. Order affects how they appear to customers.
+            </p>
             
-            {/* Category list */}
+            {/* Category list - sorted by sortOrder */}
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {categories.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">No categories yet. Add one above.</p>
               ) : (
-                categories.map(cat => (
+                [...categories].sort((a, b) => a.sortOrder - b.sortOrder).map((cat, index, sortedCats) => (
                   <div key={cat.id} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
                     {editingCategory?.id === cat.id ? (
                       <>
@@ -1958,6 +1963,34 @@ export default function Admin() {
                       </>
                     ) : (
                       <>
+                        {/* Move Up/Down buttons */}
+                        <div className="flex flex-col">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0"
+                            disabled={index === 0}
+                            onClick={() => {
+                              reorderCategories(index, index - 1);
+                              toast.success('Category moved up');
+                            }}
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0"
+                            disabled={index === sortedCats.length - 1}
+                            onClick={() => {
+                              reorderCategories(index, index + 1);
+                              toast.success('Category moved down');
+                            }}
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        
                         <span className="flex-1 font-medium">{cat.name}</span>
                         <span className="text-xs text-muted-foreground">
                           {menuItems.filter(m => m.category === cat.name).length} items
