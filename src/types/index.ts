@@ -94,6 +94,12 @@ export interface Settings {
   googleReviewUrl?: string;
   // Admin-less mode: counter gets full admin access
   counterAsAdmin?: boolean;
+  // Point system settings
+  pointSystemEnabled?: boolean;
+  pointsPerRupee?: number;       // How many points earned per rupee spent (e.g., 1 point per 10 rupees = 0.1)
+  pointValueInRupees?: number;   // How much 1 point is worth in rupees (e.g., 1 point = 1 rupee)
+  maxDiscountRupees?: number;    // Maximum discount in rupees that can be applied
+  maxDiscountPoints?: number;    // Maximum points that can be used at once
 }
 
 export interface DashboardStats {

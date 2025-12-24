@@ -1322,6 +1322,108 @@ export default function Admin() {
                   </div>
                 </div>
 
+                {/* Point System Settings */}
+                <div className="bg-card rounded-xl border border-border p-5">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-warning" />
+                    Loyalty Point System
+                  </h3>
+                  
+                  {/* Enable/Disable Toggle */}
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+                    <div>
+                      <label className="text-sm font-medium">Enable Point System</label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Customers earn points on purchases and redeem for discounts.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.pointSystemEnabled || false}
+                      onCheckedChange={(checked) => {
+                        updateSettings({ pointSystemEnabled: checked });
+                        toast.success(checked ? 'Point system enabled' : 'Point system disabled');
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Point System Configuration - Only shown when enabled */}
+                  {settings.pointSystemEnabled && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Points per रू100 spent</label>
+                          <Input 
+                            type="number" 
+                            min="0"
+                            value={settings.pointsPerRupee !== undefined ? settings.pointsPerRupee * 100 : 10} 
+                            onChange={e => updateSettings({ pointsPerRupee: (parseFloat(e.target.value) || 10) / 100 })} 
+                            placeholder="10"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            E.g., 10 means customer earns 10 points per रू100
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">1 Point = रू</label>
+                          <Input 
+                            type="number" 
+                            min="0"
+                            step="0.1"
+                            value={settings.pointValueInRupees || 1} 
+                            onChange={e => updateSettings({ pointValueInRupees: parseFloat(e.target.value) || 1 })} 
+                            placeholder="1"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            How much 1 point is worth in rupees
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Max Discount (रू)</label>
+                          <Input 
+                            type="number" 
+                            min="0"
+                            value={settings.maxDiscountRupees || ''} 
+                            onChange={e => updateSettings({ maxDiscountRupees: parseFloat(e.target.value) || undefined })} 
+                            placeholder="No limit"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Maximum discount in rupees. Leave empty for no limit.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Max Points per Order</label>
+                          <Input 
+                            type="number" 
+                            min="0"
+                            value={settings.maxDiscountPoints || ''} 
+                            onChange={e => updateSettings({ maxDiscountPoints: parseFloat(e.target.value) || undefined })} 
+                            placeholder="No limit"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Max points redeemable per order. Leave empty for no limit.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Preview calculation */}
+                      <div className="bg-muted/50 rounded-lg p-4 mt-4">
+                        <p className="text-sm font-medium mb-2">Example:</p>
+                        <p className="text-xs text-muted-foreground">
+                          • Customer spends रू500 → Earns {Math.round(500 * (settings.pointsPerRupee || 0.1))} points<br/>
+                          • Customer has 100 points → Can redeem for रू{Math.min(
+                            100 * (settings.pointValueInRupees || 1),
+                            settings.maxDiscountRupees || 100 * (settings.pointValueInRupees || 1)
+                          )} discount
+                          {settings.maxDiscountRupees ? ` (max रू${settings.maxDiscountRupees})` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-card rounded-xl border border-border p-5">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <QrCode className="w-5 h-5 text-primary" />
