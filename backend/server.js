@@ -2,35 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
-import { createServer as createHttpsServer } from 'https';
 import initSqlJs from 'sql.js';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Check for SSL certificates (same ones used by Vite)
-const certPath = path.resolve(__dirname, '../chiyadani.local+3.pem');
-const keyPath = path.resolve(__dirname, '../chiyadani.local+3-key.pem');
-const hasSSL = existsSync(certPath) && existsSync(keyPath);
 
 const app = express();
-
-// Create HTTP or HTTPS server based on certificate availability
-let server;
-if (hasSSL) {
-  server = createHttpsServer({
-    cert: readFileSync(certPath),
-    key: readFileSync(keyPath)
-  }, app);
-  console.log('[Server] SSL certificates found - HTTPS enabled');
-} else {
-  server = createServer(app);
-  console.log('[Server] No SSL certificates - running HTTP');
-}
-
+const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Initialize SQLite database
@@ -776,17 +752,12 @@ wss.on('connection', (ws, req) => {
 });
 
 const PORT = process.env.PORT || 3001;
-const protocol = hasSSL ? 'https' : 'http';
-const wsProtocol = hasSSL ? 'wss' : 'ws';
 
 // Initialize database then start server
 initDatabase().then(() => {
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on ${protocol}://0.0.0.0:${PORT}`);
-    console.log(`WebSocket running on ${wsProtocol}://0.0.0.0:${PORT}`);
-    if (hasSSL) {
-      console.log(`Access via: https://chiyadani.local:${PORT}`);
-    }
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`WebSocket running on ws://0.0.0.0:${PORT}`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);
