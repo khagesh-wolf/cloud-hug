@@ -86,6 +86,8 @@ export default function Counter() {
   const [historyDate, setHistoryDate] = useState('');
   const [historyLimit, setHistoryLimit] = useState(10);
   const [billsLimit, setBillsLimit] = useState(10);
+  const [acceptedLimit, setAcceptedLimit] = useState(10);
+  const [expensesLimit, setExpensesLimit] = useState(10);
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [lastPaidData, setLastPaidData] = useState<any>(null);
   const [currentDetailData, setCurrentDetailData] = useState<any>(null);
@@ -117,6 +119,22 @@ export default function Counter() {
   // Filter orders
   const pendingOrdersRaw = orders.filter(o => o.status === 'pending');
   const acceptedOrders = orders.filter(o => o.status === 'accepted');
+  
+  // Filter accepted orders with search for display
+  const getFilteredAcceptedOrders = () => {
+    let data = [...acceptedOrders];
+    if (searchInput) {
+      const term = searchInput.toLowerCase();
+      data = data.filter(o => 
+        o.tableNumber.toString().includes(term) ||
+        (o.customerPhone || '').toLowerCase().includes(term) ||
+        o.id.toLowerCase().includes(term) ||
+        o.items.some(i => i.name.toLowerCase().includes(term))
+      );
+    }
+    return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  };
+  const filteredAcceptedOrders = getFilteredAcceptedOrders();
 
   // Group pending orders by customer (table + phone)
   const getGroupedPendingOrders = (): PendingOrderGroup[] => {
@@ -208,16 +226,40 @@ export default function Counter() {
   const discountAmount = redeemPoints ? Math.min(availablePoints, paymentSubtotal) : 0;
   const paymentTotal = paymentSubtotal - discountAmount;
 
-  // History data
+  // History data with search
   const getHistoryData = () => {
     let data = [...transactions];
     if (historyDate) {
       data = data.filter(t => t.paidAt.startsWith(historyDate));
     }
+    if (searchInput) {
+      const term = searchInput.toLowerCase();
+      data = data.filter(t => 
+        t.tableNumber.toString().includes(term) ||
+        t.customerPhones.some(p => p.toLowerCase().includes(term)) ||
+        t.id.toLowerCase().includes(term) ||
+        t.paymentMethod.toLowerCase().includes(term)
+      );
+    }
     return data.sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime());
   };
 
   const historyData = getHistoryData();
+
+  // Filtered expenses with search
+  const getFilteredExpenses = () => {
+    let data = [...expenses];
+    if (searchInput) {
+      const term = searchInput.toLowerCase();
+      data = data.filter(e => 
+        e.category.toLowerCase().includes(term) ||
+        e.description.toLowerCase().includes(term) ||
+        e.amount.toString().includes(term)
+      );
+    }
+    return data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  };
+  const filteredExpenses = getFilteredExpenses();
 
   const handleAcceptGroup = (group: PendingOrderGroup) => {
     // Accept all orders in the group
@@ -926,12 +968,12 @@ export default function Counter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {acceptedOrders.length === 0 ? (
+                    {filteredAcceptedOrders.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="text-center py-8 text-[#aaa]">No accepted orders.</td>
                       </tr>
                     ) : (
-                      acceptedOrders.map(order => (
+                      filteredAcceptedOrders.slice(0, acceptedLimit).map(order => (
                         <tr key={order.id} className="border-t border-[#eee] hover:bg-[#f9f9f9]">
                           <td className="p-3 md:p-4 text-sm">#{order.id.slice(-6)}</td>
                           <td className="p-3 md:p-4 text-sm">{formatNepalTime(order.createdAt)}</td>
@@ -945,6 +987,13 @@ export default function Counter() {
                   </tbody>
                 </table>
               </div>
+              {filteredAcceptedOrders.length > acceptedLimit && (
+                <div className="text-center py-4">
+                  <Button variant="outline" onClick={() => setAcceptedLimit(acceptedLimit + 10)}>
+                    Show More ({filteredAcceptedOrders.length - acceptedLimit} remaining)
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1031,12 +1080,12 @@ export default function Counter() {
                       </tr>
                     </thead>
                     <tbody>
-                      {expenses.length === 0 ? (
+                      {filteredExpenses.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="text-center py-8 text-[#aaa]">No expenses recorded.</td>
                         </tr>
                       ) : (
-                        [...expenses].reverse().map(exp => (
+                        filteredExpenses.slice(0, expensesLimit).map(exp => (
                           <tr key={exp.id} className="border-t border-[#eee] hover:bg-[#f9f9f9]">
                             <td className="p-3 md:p-4 text-sm">{formatNepalDateTime(exp.createdAt)}</td>
                             <td className="p-3 md:p-4 capitalize text-sm">{exp.category}</td>
@@ -1053,11 +1102,18 @@ export default function Counter() {
                     </tbody>
                   </table>
                 </div>
-                {expenses.length > 0 && (
+                {filteredExpenses.length > expensesLimit && (
+                  <div className="text-center py-4">
+                    <Button variant="outline" onClick={() => setExpensesLimit(expensesLimit + 10)}>
+                      Show More ({filteredExpenses.length - expensesLimit} remaining)
+                    </Button>
+                  </div>
+                )}
+                {filteredExpenses.length > 0 && (
                   <div className="p-4 bg-[#f8f9fa] border-t border-[#eee]">
                     <div className="flex justify-between font-bold">
-                      <span>Total Expenses:</span>
-                      <span className="text-red-600">-रू{expenses.reduce((sum, e) => sum + e.amount, 0)}</span>
+                      <span>Total Expenses{searchInput ? ' (filtered)' : ''}:</span>
+                      <span className="text-red-600">-रू{filteredExpenses.reduce((sum, e) => sum + e.amount, 0)}</span>
                     </div>
                   </div>
                 )}
