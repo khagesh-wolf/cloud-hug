@@ -44,7 +44,7 @@ export default function Admin() {
     bulkToggleAvailability,
     categories, addCategory, updateCategory, deleteCategory,
     customers, transactions, staff, settings, updateSettings,
-    addStaff, updateStaff, deleteStaff,
+    addStaff, updateStaff, deleteStaff, expenses,
     isAuthenticated, currentUser, logout, getTodayStats
   } = useStore();
 
@@ -72,6 +72,7 @@ export default function Admin() {
   const [historySearch, setHistorySearch] = useState('');
   const [historyDateFrom, setHistoryDateFrom] = useState('');
   const [historyDateTo, setHistoryDateTo] = useState('');
+  const [historyTab, setHistoryTab] = useState<'transactions' | 'expenses'>('transactions');
 
   // Modal states
   const [customerDetailModal, setCustomerDetailModal] = useState<Customer | null>(null);
@@ -246,6 +247,15 @@ export default function Admin() {
     const matchesDateTo = !historyDateTo || t.paidAt.split('T')[0] <= historyDateTo;
     return matchesSearch && matchesDateFrom && matchesDateTo;
   }).sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime());
+
+  const filteredExpenses = expenses.filter(e => {
+    const matchesSearch = !historySearch || 
+      e.description.toLowerCase().includes(historySearch.toLowerCase()) ||
+      e.category.toLowerCase().includes(historySearch.toLowerCase());
+    const matchesDateFrom = !historyDateFrom || e.createdAt.split('T')[0] >= historyDateFrom;
+    const matchesDateTo = !historyDateTo || e.createdAt.split('T')[0] <= historyDateTo;
+    return matchesSearch && matchesDateFrom && matchesDateTo;
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleAddItem = () => {
     // Validate menu item name
@@ -1156,9 +1166,31 @@ export default function Admin() {
         {tab === 'history' && (
           <div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <h2 className="text-lg md:text-2xl font-bold">Transaction History</h2>
+              <h2 className="text-lg md:text-2xl font-bold">History</h2>
               <Button onClick={exportHistoryCSV} variant="outline" size="sm" className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" /> Export
+              </Button>
+            </div>
+
+            {/* History Tabs */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={historyTab === 'transactions' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setHistoryTab('transactions')}
+                className={historyTab === 'transactions' ? 'gradient-primary' : ''}
+              >
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Transactions ({filteredTransactions.length})
+              </Button>
+              <Button
+                variant={historyTab === 'expenses' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setHistoryTab('expenses')}
+                className={historyTab === 'expenses' ? 'gradient-primary' : ''}
+              >
+                <DollarSign className="w-4 h-4 mr-2" />
+                Expenses ({filteredExpenses.length})
               </Button>
             </div>
             
@@ -1167,7 +1199,7 @@ export default function Admin() {
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search table or phone..."
+                  placeholder={historyTab === 'transactions' ? "Search table or phone..." : "Search description or category..."}
                   value={historySearch}
                   onChange={e => setHistorySearch(e.target.value)}
                   className="pl-10 w-full"
@@ -1192,70 +1224,161 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
-              {filteredTransactions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground bg-card rounded-xl border border-border">No transactions found</div>
-              ) : filteredTransactions.slice(0, 50).map(t => (
-                <div key={t.id} className="bg-card rounded-xl border border-border p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-bold">Table {t.tableNumber}</p>
-                      <p className="text-xs text-muted-foreground">{formatNepalDateTime(t.paidAt)}</p>
+            {/* Transactions View */}
+            {historyTab === 'transactions' && (
+              <>
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {filteredTransactions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground bg-card rounded-xl border border-border">No transactions found</div>
+                  ) : filteredTransactions.slice(0, 50).map(t => (
+                    <div key={t.id} className="bg-card rounded-xl border border-border p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-bold">Table {t.tableNumber}</p>
+                          <p className="text-xs text-muted-foreground">{formatNepalDateTime(t.paidAt)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-primary">रू {t.total}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded ${t.paymentMethod === 'cash' ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'}`}>
+                            {t.paymentMethod.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        {t.customerPhones.length > 0 ? t.customerPhones.join(', ') : 'Guest'}
+                      </div>
+                      <div className="text-sm bg-muted rounded-lg p-2">
+                        <p className="line-clamp-2">{t.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</p>
+                      </div>
+                      {t.discount > 0 && (
+                        <p className="text-xs text-destructive mt-2">Discount: -रू{t.discount}</p>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary">रू {t.total}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded ${t.paymentMethod === 'cash' ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'}`}>
-                        {t.paymentMethod.toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground mb-2">
-                    {t.customerPhones.length > 0 ? t.customerPhones.join(', ') : 'Guest'}
-                  </div>
-                  <div className="text-sm bg-muted rounded-lg p-2">
-                    <p className="line-clamp-2">{t.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</p>
-                  </div>
-                  {t.discount > 0 && (
-                    <p className="text-xs text-destructive mt-2">Discount: -रू{t.discount}</p>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-4">Time</th>
-                      <th className="text-left p-4">Table</th>
-                      <th className="text-left p-4">Customers</th>
-                      <th className="text-left p-4">Items</th>
-                      <th className="text-left p-4">Discount</th>
-                      <th className="text-left p-4">Total</th>
-                      <th className="text-left p-4">Method</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransactions.length === 0 ? (
-                      <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No transactions found</td></tr>
-                    ) : filteredTransactions.slice(0, 50).map(t => (
-                      <tr key={t.id} className="border-t border-border hover:bg-muted/50">
-                        <td className="p-4">{formatNepalDateTime(t.paidAt)}</td>
-                        <td className="p-4">Table {t.tableNumber}</td>
-                        <td className="p-4">{t.customerPhones.join(', ') || 'Guest'}</td>
-                        <td className="p-4 text-sm max-w-xs truncate">{t.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</td>
-                        <td className="p-4">{t.discount > 0 ? `-रू${t.discount}` : '-'}</td>
-                        <td className="p-4 font-bold">रू {t.total}</td>
-                        <td className="p-4">{t.paymentMethod.toUpperCase()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-4">Time</th>
+                          <th className="text-left p-4">Table</th>
+                          <th className="text-left p-4">Customers</th>
+                          <th className="text-left p-4">Items</th>
+                          <th className="text-left p-4">Discount</th>
+                          <th className="text-left p-4">Total</th>
+                          <th className="text-left p-4">Method</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTransactions.length === 0 ? (
+                          <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No transactions found</td></tr>
+                        ) : filteredTransactions.slice(0, 50).map(t => (
+                          <tr key={t.id} className="border-t border-border hover:bg-muted/50">
+                            <td className="p-4">{formatNepalDateTime(t.paidAt)}</td>
+                            <td className="p-4">Table {t.tableNumber}</td>
+                            <td className="p-4">{t.customerPhones.join(', ') || 'Guest'}</td>
+                            <td className="p-4 text-sm max-w-xs truncate">{t.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</td>
+                            <td className="p-4">{t.discount > 0 ? `-रू${t.discount}` : '-'}</td>
+                            <td className="p-4 font-bold">रू {t.total}</td>
+                            <td className="p-4">{t.paymentMethod.toUpperCase()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Expenses View */}
+            {historyTab === 'expenses' && (
+              <>
+                {/* Total Expenses Summary */}
+                <div className="bg-card rounded-xl border border-border p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Total Expenses</span>
+                    <span className="text-xl font-bold text-destructive">
+                      रू {filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {filteredExpenses.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground bg-card rounded-xl border border-border">No expenses found</div>
+                  ) : filteredExpenses.slice(0, 50).map(e => (
+                    <div key={e.id} className="bg-card rounded-xl border border-border p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-bold">{e.description}</p>
+                          <p className="text-xs text-muted-foreground">{formatNepalDateTime(e.createdAt)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-destructive">-रू {e.amount}</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          e.category === 'ingredients' ? 'bg-success/10 text-success' :
+                          e.category === 'utilities' ? 'bg-primary/10 text-primary' :
+                          e.category === 'salary' ? 'bg-warning/10 text-warning' :
+                          e.category === 'maintenance' ? 'bg-accent text-accent-foreground' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {e.category.charAt(0).toUpperCase() + e.category.slice(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">by {e.createdBy}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-4">Time</th>
+                          <th className="text-left p-4">Description</th>
+                          <th className="text-left p-4">Category</th>
+                          <th className="text-left p-4">Created By</th>
+                          <th className="text-left p-4">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredExpenses.length === 0 ? (
+                          <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No expenses found</td></tr>
+                        ) : filteredExpenses.slice(0, 50).map(e => (
+                          <tr key={e.id} className="border-t border-border hover:bg-muted/50">
+                            <td className="p-4">{formatNepalDateTime(e.createdAt)}</td>
+                            <td className="p-4">{e.description}</td>
+                            <td className="p-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                e.category === 'ingredients' ? 'bg-success/10 text-success' :
+                                e.category === 'utilities' ? 'bg-primary/10 text-primary' :
+                                e.category === 'salary' ? 'bg-warning/10 text-warning' :
+                                e.category === 'maintenance' ? 'bg-accent text-accent-foreground' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {e.category.charAt(0).toUpperCase() + e.category.slice(1)}
+                              </span>
+                            </td>
+                            <td className="p-4 text-sm">{e.createdBy}</td>
+                            <td className="p-4 font-bold text-destructive">-रू {e.amount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
