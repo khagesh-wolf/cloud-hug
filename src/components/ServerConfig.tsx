@@ -1,19 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Server, Wifi, WifiOff, RefreshCw, Settings2 } from 'lucide-react';
+import { Server, Wifi, WifiOff, RefreshCw, Settings2, QrCode, Copy, Check } from 'lucide-react';
 import { getApiBaseUrl, checkBackendHealth } from '@/lib/apiClient';
 import { wsSync } from '@/lib/websocketSync';
 import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 
 export function ServerConfig() {
   const [serverUrl, setServerUrl] = useState(getApiBaseUrl());
   const [testing, setTesting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isConnected = wsSync.isConnected();
+
+  // Get the current app URL for QR code
+  const currentUrl = typeof window !== 'undefined' 
+    ? `${window.location.protocol}//${window.location.host}` 
+    : '';
 
   const handleTestConnection = async () => {
     setTesting(true);
@@ -46,6 +54,17 @@ export function ServerConfig() {
     }, 500);
   };
 
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl);
+      setCopied(true);
+      toast.success('URL copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy URL');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -67,9 +86,54 @@ export function ServerConfig() {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* QR Code for connecting other devices */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <QrCode className="h-4 w-4" />
+                Connect Other Devices
+              </Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowQR(!showQR)}
+              >
+                {showQR ? 'Hide QR' : 'Show QR'}
+              </Button>
+            </div>
+            
+            {showQR && (
+              <div className="flex flex-col items-center gap-3 p-4 bg-white rounded-lg border">
+                <QRCodeSVG 
+                  value={currentUrl} 
+                  size={180}
+                  level="M"
+                  includeMargin
+                />
+                <div className="flex items-center gap-2 text-sm">
+                  <code className="bg-muted px-2 py-1 rounded text-xs break-all">
+                    {currentUrl}
+                  </code>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={handleCopyUrl}
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Scan with another device to open this app.<br/>
+                  <strong>Tip:</strong> If mDNS doesn't work, use the IP address directly.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Server URL */}
           <div className="space-y-2">
-            <Label>Server URL</Label>
+            <Label>Backend Server URL</Label>
             <div className="flex gap-2">
               <Input
                 value={serverUrl}
@@ -122,9 +186,13 @@ export function ServerConfig() {
           </div>
 
           {/* Info */}
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p><strong>Important:</strong> All devices must connect to the same server URL for data to sync.</p>
-            <p className="text-xs">Example: http://192.168.1.100:3001</p>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p><strong>Important:</strong> All devices must be on the same network.</p>
+            <p className="text-xs">
+              ⚠️ If <code className="bg-muted px-1 rounded">hostname.local</code> doesn't work, 
+              your device's Private DNS may be blocking mDNS. Use the IP address instead or 
+              disable Private DNS in your phone's network settings.
+            </p>
           </div>
         </div>
       </DialogContent>
