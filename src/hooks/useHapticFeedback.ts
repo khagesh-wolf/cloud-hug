@@ -36,6 +36,7 @@ export function useHapticFeedback() {
   const hapticQuantityChange = () => triggerHaptic('light');
   const hapticDeleteItem = () => triggerHaptic('medium');
   const hapticOrderPlaced = () => triggerHaptic('heavy');
+  const hapticFavorite = () => triggerHaptic('light');
 
   return {
     triggerHaptic,
@@ -43,6 +44,7 @@ export function useHapticFeedback() {
     hapticQuantityChange,
     hapticDeleteItem,
     hapticOrderPlaced,
+    hapticFavorite,
   };
 }
 

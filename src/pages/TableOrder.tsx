@@ -61,7 +61,7 @@ export default function TableOrder() {
   const { formatWaitTime, getWaitTimeForNewOrder, queueLength } = useWaitTime();
 
   // Haptic feedback hook
-  const { hapticAddToCart, hapticQuantityChange, hapticDeleteItem, hapticOrderPlaced } = useHapticFeedback();
+  const { hapticAddToCart, hapticQuantityChange, hapticDeleteItem, hapticOrderPlaced, hapticFavorite } = useHapticFeedback();
 
   // Get the table number that was originally scanned (stored in session)
   const [lockedTable, setLockedTable] = useState<number | null>(null);
@@ -608,7 +608,7 @@ export default function TableOrder() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                          onClick={(e) => { e.stopPropagation(); hapticFavorite(); toggleFavorite(item.id); }}
                           className="text-[#e74c3c]"
                         >
                           <Heart className="w-4 h-4 fill-current" />
@@ -685,7 +685,7 @@ export default function TableOrder() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold mb-1">{item.name}</h3>
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                          onClick={(e) => { e.stopPropagation(); hapticFavorite(); toggleFavorite(item.id); }}
                           className={isFav ? 'text-[#e74c3c]' : 'text-[#ccc]'}
                         >
                           <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
