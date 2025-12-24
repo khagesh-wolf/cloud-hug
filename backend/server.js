@@ -624,26 +624,62 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.put('/api/settings', (req, res) => {
-  const { 
-    restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, 
-    instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, counterAsAdmin,
-    pointSystemEnabled, pointsPerRupee, pointValueInRupees, maxDiscountRupees, maxDiscountPoints
-  } = req.body;
-  runQuery(`
-    UPDATE settings SET 
-      restaurant_name=?, table_count=?, wifi_ssid=?, wifi_password=?, base_url=?, 
-      logo=?, instagram_url=?, facebook_url=?, tiktok_url=?, google_review_url=?,
-      counter_as_admin=?, point_system_enabled=?, points_per_rupee=?, point_value_in_rupees=?,
-      max_discount_rupees=?, max_discount_points=?
-    WHERE id=1
-  `, [
-    restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, 
-    instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, 
-    counterAsAdmin ? 1 : 0, pointSystemEnabled ? 1 : 0, 
-    pointsPerRupee, pointValueInRupees, maxDiscountRupees, maxDiscountPoints
-  ]);
-  broadcast('SETTINGS_UPDATE', req.body);
-  res.json({ success: true });
+  try {
+    const { 
+      restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo, 
+      instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl, counterAsAdmin,
+      pointSystemEnabled, pointsPerRupee, pointValueInRupees, maxDiscountRupees, maxDiscountPoints
+    } = req.body;
+    
+    // Check which columns exist to build dynamic query
+    const columns = db.pragma('table_info(settings)');
+    const columnNames = columns.map(col => col.name);
+    
+    // Build update parts dynamically based on existing columns
+    const updates = [];
+    const values = [];
+    
+    // Core fields (always exist)
+    updates.push('restaurant_name=?', 'table_count=?', 'wifi_ssid=?', 'wifi_password=?', 'base_url=?', 'logo=?');
+    values.push(restaurantName, tableCount, wifiSSID, wifiPassword, baseUrl, logo);
+    
+    updates.push('instagram_url=?', 'facebook_url=?', 'tiktok_url=?', 'google_review_url=?');
+    values.push(instagramUrl, facebookUrl, tiktokUrl, googleReviewUrl);
+    
+    if (columnNames.includes('counter_as_admin')) {
+      updates.push('counter_as_admin=?');
+      values.push(counterAsAdmin ? 1 : 0);
+    }
+    if (columnNames.includes('point_system_enabled')) {
+      updates.push('point_system_enabled=?');
+      values.push(pointSystemEnabled ? 1 : 0);
+    }
+    if (columnNames.includes('points_per_rupee')) {
+      updates.push('points_per_rupee=?');
+      values.push(pointsPerRupee ?? 0.1);
+    }
+    if (columnNames.includes('point_value_in_rupees')) {
+      updates.push('point_value_in_rupees=?');
+      values.push(pointValueInRupees ?? 1);
+    }
+    if (columnNames.includes('max_discount_rupees')) {
+      updates.push('max_discount_rupees=?');
+      values.push(maxDiscountRupees ?? null);
+    }
+    if (columnNames.includes('max_discount_points')) {
+      updates.push('max_discount_points=?');
+      values.push(maxDiscountPoints ?? null);
+    }
+    
+    const sql = `UPDATE settings SET ${updates.join(', ')} WHERE id=1`;
+    runQuery(sql, values);
+    
+    broadcast('SETTINGS_UPDATE', req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[API] Settings update error:', error);
+    res.status(500).json({ message: 'Failed to update settings', error: error.message });
+  }
 });
 
 // ============ EXPENSES ============
