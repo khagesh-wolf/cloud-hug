@@ -134,6 +134,7 @@ export const useBackendSync = () => {
     // Connection status handler
     unsubscribers.push(
       wsSync.on('connection', (data) => {
+        console.log('[BackendSync] WebSocket connection status:', data.status);
         setIsConnected(data.status === 'connected');
         if (data.status === 'connected') {
           // Refresh data on reconnection
@@ -142,18 +143,37 @@ export const useBackendSync = () => {
       })
     );
 
+    // Server acknowledgment
+    unsubscribers.push(
+      wsSync.on('CONNECTED', (data) => {
+        console.log('[BackendSync] Server acknowledged connection. Total clients:', data.clientCount);
+      })
+    );
+
     // Menu updates
     unsubscribers.push(
-      wsSync.on('MENU_UPDATE', async () => {
+      wsSync.on('MENU_UPDATE', async (data) => {
+        console.log('[BackendSync] Received MENU_UPDATE:', data);
         const menuItems = await menuApi.getAll();
         useStore.setState({ menuItems });
         markSynced();
       })
     );
 
+    // Staff updates
+    unsubscribers.push(
+      wsSync.on('STAFF_UPDATE', async (data) => {
+        console.log('[BackendSync] Received STAFF_UPDATE:', data);
+        const staff = await staffApi.getAll();
+        useStore.setState({ staff });
+        markSynced();
+      })
+    );
+
     // Order updates
     unsubscribers.push(
-      wsSync.on('ORDER_UPDATE', async () => {
+      wsSync.on('ORDER_UPDATE', async (data) => {
+        console.log('[BackendSync] Received ORDER_UPDATE:', data);
         const orders = await ordersApi.getAll();
         useStore.setState({ orders });
         markSynced();
@@ -162,7 +182,8 @@ export const useBackendSync = () => {
 
     // Bill updates
     unsubscribers.push(
-      wsSync.on('BILL_UPDATE', async () => {
+      wsSync.on('BILL_UPDATE', async (data) => {
+        console.log('[BackendSync] Received BILL_UPDATE:', data);
         const [bills, transactions] = await Promise.all([
           billsApi.getAll(),
           transactionsApi.getAll(),
@@ -174,7 +195,8 @@ export const useBackendSync = () => {
 
     // Customer updates
     unsubscribers.push(
-      wsSync.on('CUSTOMER_UPDATE', async () => {
+      wsSync.on('CUSTOMER_UPDATE', async (data) => {
+        console.log('[BackendSync] Received CUSTOMER_UPDATE:', data);
         const customers = await customersApi.getAll();
         useStore.setState({ customers });
         markSynced();
@@ -183,7 +205,8 @@ export const useBackendSync = () => {
 
     // Waiter call updates (server broadcasts 'WAITER_CALL')
     unsubscribers.push(
-      wsSync.on('WAITER_CALL', async () => {
+      wsSync.on('WAITER_CALL', async (data) => {
+        console.log('[BackendSync] Received WAITER_CALL:', data);
         const waiterCalls = await waiterCallsApi.getAll();
         useStore.setState({ waiterCalls });
         markSynced();
@@ -192,7 +215,8 @@ export const useBackendSync = () => {
 
     // Settings updates
     unsubscribers.push(
-      wsSync.on('SETTINGS_UPDATE', async () => {
+      wsSync.on('SETTINGS_UPDATE', async (data) => {
+        console.log('[BackendSync] Received SETTINGS_UPDATE:', data);
         const settings = await settingsApi.get();
         useStore.setState({ settings });
         markSynced();
@@ -201,7 +225,8 @@ export const useBackendSync = () => {
 
     // Expense updates
     unsubscribers.push(
-      wsSync.on('EXPENSE_UPDATE', async () => {
+      wsSync.on('EXPENSE_UPDATE', async (data) => {
+        console.log('[BackendSync] Received EXPENSE_UPDATE:', data);
         const expenses = await expensesApi.getAll();
         useStore.setState({ expenses });
         markSynced();
