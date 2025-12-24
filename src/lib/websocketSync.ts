@@ -14,6 +14,7 @@ class WebSocketSync {
 
   connect() {
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
+      console.log('[WebSocket] Already connected or connecting, skipping...');
       return;
     }
 
@@ -21,13 +22,14 @@ class WebSocketSync {
     const apiUrl = getApiBaseUrl();
     const wsUrl = apiUrl.replace(/^http/, 'ws');
 
-    console.log(`[WebSocket] Connecting to ${wsUrl}...`);
+    console.log(`[WebSocket] API URL: ${apiUrl}`);
+    console.log(`[WebSocket] Connecting to WebSocket: ${wsUrl}`);
 
     try {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('[WebSocket] Connected successfully');
+        console.log('[WebSocket] ✅ Connected successfully to', wsUrl);
         this.reconnectAttempts = 0;
         this.isConnecting = false;
         this.emit('connection', { status: 'connected' });
@@ -36,7 +38,7 @@ class WebSocketSync {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('[WebSocket] Received:', data.type);
+          console.log('[WebSocket] 📩 Received message:', data.type, data.data);
           this.emit(data.type, data.data);
         } catch (error) {
           console.error('[WebSocket] Failed to parse message:', error);
@@ -44,7 +46,7 @@ class WebSocketSync {
       };
 
       this.ws.onclose = (event) => {
-        console.log('[WebSocket] Connection closed:', event.code, event.reason);
+        console.log('[WebSocket] ❌ Connection closed:', event.code, event.reason);
         this.isConnecting = false;
         this.ws = null;
         this.emit('connection', { status: 'disconnected' });
@@ -52,7 +54,7 @@ class WebSocketSync {
       };
 
       this.ws.onerror = (error) => {
-        console.error('[WebSocket] Error:', error);
+        console.error('[WebSocket] ⚠️ Error:', error);
         this.isConnecting = false;
         this.emit('connection', { status: 'error' });
       };

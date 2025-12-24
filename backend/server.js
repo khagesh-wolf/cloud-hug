@@ -192,11 +192,14 @@ app.get('/api/health', (req, res) => {
 // Broadcast to all connected clients
 function broadcast(type, data) {
   const message = JSON.stringify({ type, data });
+  let sentCount = 0;
   wss.clients.forEach(client => {
     if (client.readyState === 1) {
       client.send(message);
+      sentCount++;
     }
   });
+  console.log(`[Broadcast] ${type} sent to ${sentCount}/${wss.clients.size} clients`);
 }
 
 // ============ MENU ITEMS ============
@@ -403,6 +406,34 @@ app.post('/api/staff', (req, res) => {
     INSERT INTO staff (id, username, password, role, name, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
   `, [id, username, password, role, name, createdAt]);
+  broadcast('STAFF_UPDATE', { action: 'add', staff: req.body });
+  res.json({ success: true });
+});
+
+app.put('/api/staff/:id', (req, res) => {
+  const { username, password, role, name } = req.body;
+  runQuery(`
+    UPDATE staff SET username=?, password=?, role=?, name=? WHERE id=?
+  `, [username, password, role, name, req.params.id]);
+  broadcast('STAFF_UPDATE', { action: 'update', staff: { id: req.params.id, ...req.body } });
+  res.json({ success: true });
+});
+
+app.delete('/api/staff/:id', (req, res) => {
+  runQuery('DELETE FROM staff WHERE id=?', [req.params.id]);
+  broadcast('STAFF_UPDATE', { action: 'delete', id: req.params.id });
+  res.json({ success: true });
+});
+
+app.delete('/api/expenses/:id', (req, res) => {
+  runQuery('DELETE FROM expenses WHERE id=?', [req.params.id]);
+  broadcast('EXPENSE_UPDATE', { action: 'delete', id: req.params.id });
+  res.json({ success: true });
+});
+
+app.delete('/api/waiter-calls/:id', (req, res) => {
+  runQuery('DELETE FROM waiter_calls WHERE id=?', [req.params.id]);
+  broadcast('WAITER_CALL', { action: 'dismiss', id: req.params.id });
   res.json({ success: true });
 });
 
@@ -491,9 +522,20 @@ app.put('/api/waiter-calls/:id/acknowledge', (req, res) => {
 });
 
 // WebSocket connection handling
-wss.on('connection', (ws) => {
-  console.log('Client connected');
-  ws.on('close', () => console.log('Client disconnected'));
+wss.on('connection', (ws, req) => {
+  const clientIp = req.socket.remoteAddress;
+  console.log(`[WebSocket] Client connected from ${clientIp}. Total clients: ${wss.clients.size}`);
+  
+  // Send connection acknowledgment
+  ws.send(JSON.stringify({ type: 'CONNECTED', data: { clientCount: wss.clients.size } }));
+  
+  ws.on('close', () => {
+    console.log(`[WebSocket] Client disconnected. Remaining clients: ${wss.clients.size}`);
+  });
+  
+  ws.on('error', (error) => {
+    console.error('[WebSocket] Client error:', error);
+  });
 });
 
 const PORT = process.env.PORT || 3001;
