@@ -444,7 +444,7 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   // Settings - uses defaults until loaded from backend
   settings: defaultSettings,
-  setSettings: (settings) => set({ settings: settings || defaultSettings }),
+  setSettings: (settings) => set({ settings: { ...defaultSettings, ...(settings || {}) } }),
 
   updateSettings: (newSettings) => {
     set((state) => ({
