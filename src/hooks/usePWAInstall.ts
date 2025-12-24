@@ -11,8 +11,15 @@ export function usePWAInstall() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    // Check if already installed using multiple methods
+    const checkInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isIOSStandalone = (window.navigator as any).standalone === true;
+      const wasInstalled = localStorage.getItem('chiyadani:pwaInstalled') === 'true';
+      return isStandalone || isIOSStandalone || wasInstalled;
+    };
+
+    if (checkInstalled()) {
       setIsInstalled(true);
       return;
     }
