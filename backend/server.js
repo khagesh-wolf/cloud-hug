@@ -151,9 +151,13 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS transactions (
       id TEXT PRIMARY KEY,
       bill_id TEXT NOT NULL,
-      amount REAL NOT NULL,
+      table_number INTEGER NOT NULL,
+      customer_phones TEXT NOT NULL,
+      total REAL NOT NULL,
+      discount REAL DEFAULT 0,
       payment_method TEXT NOT NULL,
-      created_at TEXT NOT NULL,
+      paid_at TEXT NOT NULL,
+      items TEXT NOT NULL,
       FOREIGN KEY (bill_id) REFERENCES bills(id)
     );
   `);
@@ -375,18 +379,22 @@ app.get('/api/transactions', (req, res) => {
   res.json(transactions.map(t => ({
     id: t.id,
     billId: t.bill_id,
-    amount: t.amount,
+    tableNumber: t.table_number,
+    customerPhones: JSON.parse(t.customer_phones),
+    total: t.total,
+    discount: t.discount,
     paymentMethod: t.payment_method,
-    createdAt: t.created_at
+    paidAt: t.paid_at,
+    items: JSON.parse(t.items)
   })));
 });
 
 app.post('/api/transactions', (req, res) => {
-  const { id, billId, amount, paymentMethod, createdAt } = req.body;
+  const { id, billId, tableNumber, customerPhones, total, discount, paymentMethod, paidAt, items } = req.body;
   runQuery(`
-    INSERT INTO transactions (id, bill_id, amount, payment_method, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `, [id, billId, amount, paymentMethod, createdAt]);
+    INSERT INTO transactions (id, bill_id, table_number, customer_phones, total, discount, payment_method, paid_at, items)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [id, billId, tableNumber, JSON.stringify(customerPhones), total, discount || 0, paymentMethod, paidAt, JSON.stringify(items)]);
   broadcast('TRANSACTION_UPDATE', { action: 'add', transaction: req.body });
   res.json({ success: true });
 });
