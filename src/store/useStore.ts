@@ -223,16 +223,24 @@ export const useStore = create<StoreState>()((set, get) => ({
   addOrder: (tableNumber, customerPhone, items, notes) => {
     const now = getNepalTimestamp();
     const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    // Ensure all order items have required fields
+    const orderItems = items.map(item => ({
+      id: item.id || generateId(),
+      menuItemId: item.menuItemId,
+      name: item.name,
+      qty: item.qty,
+      price: item.price
+    }));
     const newOrder: Order = {
       id: generateId(),
       tableNumber,
       customerPhone,
-      items,
+      items: orderItems,
       status: 'pending',
       createdAt: now,
       updatedAt: now,
       total,
-      notes,
+      notes: notes || '',
     };
     set((state) => ({ orders: [...state.orders, newOrder] }));
     syncToBackend(() => ordersApi.create(newOrder));
@@ -366,6 +374,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       )
       : [...state.customers, {
         phone,
+        name: '',
         totalOrders: amount > 0 ? 1 : 0,
         totalSpent: amount,
         points: newPoints,
@@ -373,7 +382,11 @@ export const useStore = create<StoreState>()((set, get) => ({
       }];
 
     const payload = nextCustomers.find(c => c.phone === phone);
-    if (payload) syncToBackend(() => customersApi.upsert(payload));
+    if (payload) {
+      // Ensure name field exists for backend
+      const customerPayload = { ...payload, name: payload.name || '' };
+      syncToBackend(() => customersApi.upsert(customerPayload));
+    }
 
     return { customers: nextCustomers };
   }),
@@ -401,10 +414,13 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
 
   updateStaff: (id, staffData) => {
+    const currentStaff = get().staff.find(s => s.id === id);
+    if (!currentStaff) return;
+    const updatedStaff = { ...currentStaff, ...staffData };
     set((state) => ({
-      staff: state.staff.map(s => s.id === id ? { ...s, ...staffData } : s)
+      staff: state.staff.map(s => s.id === id ? updatedStaff : s)
     }));
-    syncToBackend(() => staffApi.update(id, staffData));
+    syncToBackend(() => staffApi.update(id, updatedStaff));
   },
 
   deleteStaff: (id) => {
@@ -429,7 +445,14 @@ export const useStore = create<StoreState>()((set, get) => ({
   setExpenses: (expenses) => set({ expenses }),
 
   addExpense: (expense) => {
-    const newExpense = { ...expense, id: generateId(), createdAt: getNepalTimestamp() };
+    const newExpense = { 
+      id: generateId(), 
+      amount: expense.amount,
+      description: expense.description || '',
+      category: expense.category,
+      createdAt: getNepalTimestamp(),
+      createdBy: expense.createdBy || ''
+    };
     set((state) => ({ expenses: [...state.expenses, newExpense] }));
     syncToBackend(() => expensesApi.create(newExpense));
   },
