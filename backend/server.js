@@ -196,7 +196,11 @@ function runQuery(sql, params = []) {
   saveDatabase();
 }
 
-app.use(cors());
+// Allow all origins for local network access (mDNS, IP, localhost)
+app.use(cors({
+  origin: true, // Reflect the request origin
+  credentials: true
+}));
 app.use(express.json());
 
 // Health check
