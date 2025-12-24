@@ -41,6 +41,7 @@ export default function TableOrder() {
   const [activeCategory, setActiveCategory] = useState<string>('Favorites');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [cartModalOpen, setCartModalOpen] = useState(false);
   const [billModalOpen, setBillModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -351,12 +352,6 @@ export default function TableOrder() {
 
         <div className="justify-self-end flex items-center gap-1 ml-2">
           <button 
-            onClick={() => setBillModalOpen(true)}
-            className="bg-[#f6f6f6] border border-[#eee] px-3 py-1.5 rounded-full text-sm font-semibold text-[#333] flex items-center gap-1"
-          >
-            🧾 Bill
-          </button>
-          <button 
             onClick={() => setDrawerOpen(true)}
             className="text-2xl bg-transparent border-none p-1 ml-1"
           >
@@ -390,35 +385,6 @@ export default function TableOrder() {
             </div>
           </div>
           <div className="flex flex-col gap-2.5">
-            <button 
-              onClick={() => {
-                const hasPendingCall = waiterCalls.some(
-                  c => c.tableNumber === table && c.status === 'pending'
-                );
-                if (hasPendingCall) {
-                  toast.info('Waiter has already been called. Please wait.');
-                  return;
-                }
-                callWaiter(table, phone);
-                toast.success('Waiter has been called! They will be with you shortly.');
-                setDrawerOpen(false);
-              }}
-              className="w-full bg-[#fff8e1] border border-[#ffe0b2] px-3 py-2 rounded-full text-sm font-semibold text-[#f39c12] flex items-center gap-2 justify-start"
-            >
-              <Bell className="w-4 h-4" /> Call Waiter
-            </button>
-            <button 
-              onClick={() => { setBillModalOpen(true); setDrawerOpen(false); }}
-              className="w-full bg-[#f6f6f6] border border-[#eee] px-3 py-2 rounded-full text-sm font-semibold text-[#333] flex items-center gap-2 justify-start"
-            >
-              <FileText className="w-4 h-4" /> View Current Bill
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full bg-[#f6f6f6] border border-[#eee] px-3 py-2 rounded-full text-sm font-semibold text-[#333] flex items-center gap-2 justify-start"
-            >
-              <RefreshCw className="w-4 h-4" /> Refresh App
-            </button>
             <button 
               onClick={() => {
                 // Check if there's unpaid bill
@@ -853,6 +819,69 @@ export default function TableOrder() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-24 right-4 z-[1500] flex flex-col-reverse items-end gap-2">
+        {/* FAB Menu Items */}
+        {fabOpen && (
+          <>
+            <button
+              onClick={() => {
+                setBillModalOpen(true);
+                setFabOpen(false);
+              }}
+              className="flex items-center gap-2 bg-white border border-[#eee] shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-[#333] animate-fade-in"
+            >
+              <FileText className="w-4 h-4" /> My Bill
+            </button>
+            <button
+              onClick={() => {
+                const hasPendingCall = waiterCalls.some(
+                  c => c.tableNumber === table && c.status === 'pending'
+                );
+                if (hasPendingCall) {
+                  toast.info('Waiter has already been called. Please wait.');
+                } else {
+                  callWaiter(table, phone);
+                  toast.success('Waiter has been called! They will be with you shortly.');
+                }
+                setFabOpen(false);
+              }}
+              className="flex items-center gap-2 bg-[#fff8e1] border border-[#ffe0b2] shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-[#f39c12] animate-fade-in"
+            >
+              <Bell className="w-4 h-4" /> Call Waiter
+            </button>
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="flex items-center gap-2 bg-white border border-[#eee] shadow-lg px-4 py-3 rounded-full text-sm font-semibold text-[#333] animate-fade-in"
+            >
+              <RefreshCw className="w-4 h-4" /> Refresh App
+            </button>
+          </>
+        )}
+        
+        {/* FAB Toggle Button */}
+        <button
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+            fabOpen 
+              ? 'bg-[#333] text-white rotate-45' 
+              : 'bg-primary text-white'
+          }`}
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* FAB Overlay */}
+      {fabOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-[1400]"
+          onClick={() => setFabOpen(false)}
+        />
       )}
 
       {/* Copyright Footer */}
