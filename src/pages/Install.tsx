@@ -82,15 +82,52 @@ export default function Install() {
 
     window.addEventListener('beforeinstallprompt', handler);
     
-    // Listen for successful install
+    // Listen for successful install - ONLY fires for Chrome's native prompt
     const installHandler = () => {
+      // Only show installing state if we triggered it via our button
+      if (isInstalling) {
+        setTimeout(() => {
+          setIsInstalled(true);
+          setIsInstalling(false);
+          setDeferredPrompt(null);
+          
+          // Check for active session and redirect
+          const activeSession = getActiveSession();
+          const pendingTable = sessionStorage.getItem('chiyadani:pendingTable');
+          
+          if (activeSession) {
+            navigate(`/table/${activeSession.table}`, { replace: true });
+          } else if (pendingTable) {
+            sessionStorage.removeItem('chiyadani:pendingTable');
+            navigate(`/scan?table=${pendingTable}`, { replace: true });
+          }
+        }, 1500);
+      }
+    };
+    
+    window.addEventListener('appinstalled', installHandler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      window.removeEventListener('appinstalled', installHandler);
+    };
+  }, [navigate, isInstalling]);
+
+  // Handle install button click (Android/Chrome)
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      // User accepted, show installing state
       setIsInstalling(true);
-      // Short delay to show loading animation, then redirect
+      // Wait a bit then show success (appinstalled event may not fire reliably)
       setTimeout(() => {
         setIsInstalled(true);
         setIsInstalling(false);
-        setDeferredPrompt(null);
-        
         // Check for active session and redirect
         const activeSession = getActiveSession();
         const pendingTable = sessionStorage.getItem('chiyadani:pendingTable');
@@ -101,31 +138,9 @@ export default function Install() {
           sessionStorage.removeItem('chiyadani:pendingTable');
           navigate(`/scan?table=${pendingTable}`, { replace: true });
         }
-      }, 1500);
-    };
-    
-    window.addEventListener('appinstalled', installHandler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      window.removeEventListener('appinstalled', installHandler);
-    };
-  }, [navigate]);
-
-  // Handle install button click (Android/Chrome)
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    
-    setIsInstalling(true);
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      // Installation started, wait for appinstalled event
-      // The appinstalled event handler will handle the rest
+      }, 2000);
     } else {
-      // User cancelled
-      setIsInstalling(false);
+      // User cancelled - do nothing
     }
     setDeferredPrompt(null);
   };
