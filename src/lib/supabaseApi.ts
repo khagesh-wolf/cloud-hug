@@ -431,19 +431,26 @@ export const staffApi = {
       .from('staff')
       .insert(mapStaffToDb(staff))
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
-    return mapStaffFromDb(data);
+    return data ? mapStaffFromDb(data) : staff;
   },
   update: async (id: string, staff: any) => {
-    const { data, error } = await supabase
+    // First try to update
+    const { error } = await supabase
       .from('staff')
       .update(mapStaffToDb(staff))
-      .eq('id', id)
-      .select()
-      .single();
+      .eq('id', id);
     if (error) throw error;
-    return mapStaffFromDb(data);
+    
+    // Fetch the updated record
+    const { data: fetchData, error: fetchError } = await supabase
+      .from('staff')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    return fetchData ? mapStaffFromDb(fetchData) : staff;
   },
   delete: async (id: string) => {
     const { error } = await supabase.from('staff').delete().eq('id', id);
