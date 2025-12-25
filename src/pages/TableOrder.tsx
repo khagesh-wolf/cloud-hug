@@ -60,9 +60,9 @@ function StaffApprovalInput({ onApprove }: { onApprove: () => void }) {
     
     setIsVerifying(true);
     
-    // Check if PIN matches any staff member's password (used as PIN for quick actions)
+    // Check if PIN matches any staff member's PIN or password
     // Staff with role 'counter' or 'admin' can approve
-    const matchedStaff = staff.find(s => s.password === pin);
+    const matchedStaff = staff.find(s => s.pin === pin || s.password === pin);
     
     if (matchedStaff) {
       await onApprove();
@@ -752,7 +752,7 @@ export default function TableOrder() {
             
             {/* Help Text */}
             <p className="text-xs text-muted-foreground pt-2">
-              PIN is the staff member's password set in Admin → Staff
+              Use Staff PIN set in Admin → Staff
             </p>
           </div>
           

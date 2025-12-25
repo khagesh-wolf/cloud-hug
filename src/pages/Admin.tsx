@@ -80,7 +80,7 @@ export default function Admin() {
   // Modal states
   const [customerDetailModal, setCustomerDetailModal] = useState<Customer | null>(null);
   const [staffModal, setStaffModal] = useState<{ open: boolean; editing: Staff | null }>({ open: false, editing: null });
-  const [newStaff, setNewStaff] = useState({ username: '', password: '', name: '', role: 'counter' as 'admin' | 'counter' });
+  const [newStaff, setNewStaff] = useState({ username: '', password: '', pin: '', name: '', role: 'counter' as 'admin' | 'counter' });
 
   // Dashboard date range states - use Nepal timezone
   const [dashboardDateFrom, setDashboardDateFrom] = useState(() => getNepalDateDaysAgo(30));
@@ -435,10 +435,11 @@ export default function Admin() {
     addStaff({
       ...newStaff,
       username: sanitizeText(newStaff.username),
-      name: sanitizeText(newStaff.name)
+      name: sanitizeText(newStaff.name),
+      pin: newStaff.pin || undefined
     });
     toast.success('Staff added');
-    setNewStaff({ username: '', password: '', name: '', role: 'counter' });
+    setNewStaff({ username: '', password: '', pin: '', name: '', role: 'counter' });
     setStaffModal({ open: false, editing: null });
   };
 
@@ -2285,6 +2286,14 @@ export default function Admin() {
                   type="password"
                   onChange={e => e.target.value && setStaffModal({ ...staffModal, editing: { ...staffModal.editing!, password: e.target.value }})} 
                 />
+                <Input 
+                  placeholder="PIN (4-6 digits for quick actions)" 
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={staffModal.editing.pin || ''}
+                  onChange={e => setStaffModal({ ...staffModal, editing: { ...staffModal.editing!, pin: e.target.value.replace(/\D/g, '').slice(0, 6) }})} 
+                />
                 <Select 
                   value={staffModal.editing.role} 
                   onValueChange={(v: 'admin' | 'counter') => setStaffModal({ ...staffModal, editing: { ...staffModal.editing!, role: v }})}
@@ -2301,6 +2310,14 @@ export default function Admin() {
                 <Input placeholder="Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} />
                 <Input placeholder="Username" value={newStaff.username} onChange={e => setNewStaff({ ...newStaff, username: e.target.value })} />
                 <Input placeholder="Password" type="password" value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} />
+                <Input 
+                  placeholder="PIN (4-6 digits for quick actions)" 
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={newStaff.pin}
+                  onChange={e => setNewStaff({ ...newStaff, pin: e.target.value.replace(/\D/g, '').slice(0, 6) })} 
+                />
                 <Select value={newStaff.role} onValueChange={(v: 'admin' | 'counter') => setNewStaff({ ...newStaff, role: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>

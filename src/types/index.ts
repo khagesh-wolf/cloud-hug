@@ -76,6 +76,7 @@ export interface Staff {
   id: string;
   username: string;
   password: string;
+  pin?: string; // 4-6 digit PIN for quick actions like approving orders
   role: 'admin' | 'counter';
   name: string;
   createdAt: string;
