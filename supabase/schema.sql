@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS staff (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
+  pin TEXT DEFAULT '',
   role TEXT DEFAULT 'counter',
   name TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
