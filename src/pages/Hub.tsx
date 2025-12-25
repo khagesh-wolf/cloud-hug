@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Coffee, User, ChefHat, CreditCard, Settings, TrendingUp, Users, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 import { ServerConfig } from '@/components/ServerConfig';
 import { formatNepalDateTime } from '@/lib/nepalTime';
-import { usePWARedirect } from '@/components/PWARedirect';
+
 
 const modules = [
   {
@@ -30,9 +30,7 @@ const modules = [
   },
 ];
 
-export default function Index() {
-  // Redirect PWA users to scan/table page
-  usePWARedirect();
+export default function Hub() {
   
   const { settings, isAuthenticated, currentUser, getTodayStats, getPendingOrders } = useStore();
   const stats = getTodayStats();
