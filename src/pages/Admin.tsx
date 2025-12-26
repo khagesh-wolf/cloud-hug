@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
+import { useSubscription } from '@/hooks/useSubscription';
 import { MenuItem, Customer, Staff } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import {
   Plus, Edit, Trash2, LogOut, Settings, LayoutDashboard, 
   UtensilsCrossed, Users, QrCode, History, TrendingUp, ShoppingBag, DollarSign,
   Download, Search, Eye, UserCog, BarChart3, Calendar, Image as ImageIcon, ToggleLeft, ToggleRight,
-  Check, X, Menu as MenuIcon, MonitorDot, GripVertical, Upload, Loader2
+  Check, X, Menu as MenuIcon, MonitorDot, GripVertical, Upload, Loader2, Shield
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -49,6 +50,9 @@ export default function Admin() {
     addStaff, updateStaff, deleteStaff, expenses,
     isAuthenticated, currentUser, logout, getTodayStats
   } = useStore();
+
+  // Subscription status for admin
+  const { status: subscriptionStatus } = useSubscription();
 
   const [tab, setTab] = useState('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -824,6 +828,55 @@ export default function Admin() {
                 </Button>
               </div>
             </div>
+
+            {/* Subscription Status Card */}
+            {subscriptionStatus && typeof subscriptionStatus.daysRemaining === 'number' && (
+              <div className={`p-4 rounded-xl border ${
+                subscriptionStatus.daysRemaining <= 3 
+                  ? 'bg-destructive/10 border-destructive/30' 
+                  : subscriptionStatus.daysRemaining <= 7 
+                    ? 'bg-warning/10 border-warning/30' 
+                    : 'bg-primary/10 border-primary/30'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    subscriptionStatus.daysRemaining <= 3 
+                      ? 'bg-destructive/20' 
+                      : subscriptionStatus.daysRemaining <= 7 
+                        ? 'bg-warning/20' 
+                        : 'bg-primary/20'
+                  }`}>
+                    <Shield className={`w-5 h-5 ${
+                      subscriptionStatus.daysRemaining <= 3 
+                        ? 'text-destructive' 
+                        : subscriptionStatus.daysRemaining <= 7 
+                          ? 'text-warning' 
+                          : 'text-primary'
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {subscriptionStatus.isTrial ? 'Trial Period' : 'Subscription'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {subscriptionStatus.daysRemaining} day{subscriptionStatus.daysRemaining !== 1 ? 's' : ''} remaining
+                      {subscriptionStatus.expiresAt && (
+                        <span> • Expires {new Date(subscriptionStatus.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className={`text-lg font-bold ${
+                    subscriptionStatus.daysRemaining <= 3 
+                      ? 'text-destructive' 
+                      : subscriptionStatus.daysRemaining <= 7 
+                        ? 'text-warning' 
+                        : 'text-primary'
+                  }`}>
+                    {subscriptionStatus.daysRemaining}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
               <StatCard icon={DollarSign} label="Total Revenue" value={`रू ${dashboardData.totalRevenue}`} color="primary" />
