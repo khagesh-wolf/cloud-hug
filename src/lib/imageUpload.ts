@@ -21,7 +21,7 @@ export async function uploadImage(file: File, customFilename?: string): Promise<
       formData.append('filename', customFilename);
     }
 
-    const response = await fetch(WORKER_URL, {
+    const response = await fetch(`${WORKER_URL}/api/upload`, {
       method: 'POST',
       body: formData,
     });
@@ -51,7 +51,7 @@ export async function uploadImage(file: File, customFilename?: string): Promise<
  */
 export async function deleteImage(key: string): Promise<boolean> {
   try {
-    const response = await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`, {
+    const response = await fetch(`${WORKER_URL}/api/upload?key=${encodeURIComponent(key)}`, {
       method: 'DELETE',
     });
 

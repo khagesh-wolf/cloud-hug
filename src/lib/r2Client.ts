@@ -57,7 +57,7 @@ export async function uploadToR2(
     formData.append('contentType', 'image/webp');
 
     // Upload via edge function
-    const response = await fetch(WORKER_URL, {
+    const response = await fetch(`${WORKER_URL}/api/upload`, {
       method: 'POST',
       body: formData
     });
@@ -87,7 +87,7 @@ export async function uploadToR2(
  */
 export async function deleteFromR2(key: string): Promise<boolean> {
   try {
-    const response = await fetch(`${WORKER_URL}?key=${encodeURIComponent(key)}`, {
+    const response = await fetch(`${WORKER_URL}/api/upload?key=${encodeURIComponent(key)}`, {
       method: 'DELETE'
     });
 
