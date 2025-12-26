@@ -305,7 +305,7 @@ export default function Admin() {
   // Image upload state
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // Handle image upload for menu items - now uses R2 if configured, falls back to base64
+  // Handle image upload for menu items - uses R2 CDN
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEditing: boolean) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -320,52 +320,26 @@ export default function Admin() {
       return;
     }
 
-    // Check if R2 is configured
-    const r2Configured = !!import.meta.env.VITE_R2_PUBLIC_URL;
-    
-    if (r2Configured) {
-      // Upload to R2
-      setIsUploadingImage(true);
-      try {
-        const result = await uploadToR2(file, { folder: 'menu', compress: true });
-        if (result.success && result.url) {
-          if (isEditing && editingItem) {
-            setEditingItem({ ...editingItem, image: result.url });
-          } else {
-            setNewItem(prev => ({ ...prev, image: result.url }));
-          }
-          toast.success('Image uploaded to CDN');
-        } else {
-          throw new Error(result.error || 'Upload failed');
-        }
-      } catch (error) {
-        console.error('R2 upload failed, falling back to base64:', error);
-        // Fallback to base64
-        await uploadAsBase64(file, isEditing);
-      } finally {
-        setIsUploadingImage(false);
-      }
-    } else {
-      // Use base64 fallback
-      await uploadAsBase64(file, isEditing);
-    }
-  };
-
-  // Base64 fallback for local storage
-  const uploadAsBase64 = (file: File, isEditing: boolean): Promise<void> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
+    // Upload to R2 CDN
+    setIsUploadingImage(true);
+    try {
+      const result = await uploadToR2(file, { folder: 'menu', compress: true });
+      if (result.success && result.url) {
         if (isEditing && editingItem) {
-          setEditingItem({ ...editingItem, image: base64 });
+          setEditingItem({ ...editingItem, image: result.url });
         } else {
-          setNewItem(prev => ({ ...prev, image: base64 }));
+          setNewItem(prev => ({ ...prev, image: result.url }));
         }
-        resolve();
-      };
-      reader.readAsDataURL(file);
-    });
+        toast.success('Image uploaded to CDN');
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('R2 upload failed:', error);
+      toast.error('Image upload failed. Please check R2 configuration.');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // Bulk availability toggle
